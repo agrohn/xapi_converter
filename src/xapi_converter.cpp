@@ -1,6 +1,6 @@
 /*
  * Parses moodle log from CSV and constructs xAPI statements out of it, sending them to LRS.
- * \author anssi.grohn@karelia.fi (c) 2018.
+ * \author anssi grohn at karelia dot fi (c) 2018.
  */
 #include <iostream>     
 #include <fstream>      
