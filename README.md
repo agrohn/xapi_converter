@@ -2,7 +2,9 @@
 
 Application that convertes moodle logs into xAPI statements.
 
-anssi.grohn@karelia.fi (c) 2018.
+Anssi Gröhn (c) 2018.
+
+(firstname lastname at karelia dot fi)
 
 ## MongoDB related stuff on server
 
