@@ -28,6 +28,7 @@
 using namespace std;
 using namespace boost;
 using json = nlohmann::json;
+typedef tokenizer< escaped_list_separator<char> > Tokenizer;
 
 static const unsigned char base64_table[65] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -101,15 +102,15 @@ public:
   xapi_verb_not_supported_error(const std::string & tmp ) : xapi_parsing_error( "Verb '" + tmp + "' not supported"){}
 };
 ////////////////////////////////////////////////////////////////////////////////
-class xapi_activity_not_supported_error : public xapi_parsing_error {
+class xapi_activity_type_not_supported_error : public xapi_parsing_error {
 public:
-  xapi_activity_not_supported_error(const std::string & tmp ) : xapi_parsing_error( "Activity '" + tmp + "' not supported"){}
+  xapi_activity_type_not_supported_error(const std::string & tmp ) : xapi_parsing_error( "Activity type'" + tmp + "' not supported"){}
 };
 ////////////////////////////////////////////////////////////////////////////////
 const string HOMEPAGE_URL_PREFIX = "https://moodle.karelia.fi/user/profile.php?id=";
 const string VERB_URL_PREFIX = "http://adlnet.gov/expapi/verbs/viewed";
 
-const std::map<std::string, std::string> verbs = {
+const std::map<std::string, std::string> supportedVerbs = {
   /*{ "added", ""},
     { "assigned",""},
     { "created",""},
@@ -119,20 +120,21 @@ const std::map<std::string, std::string> verbs = {
     { "graded", ""},
     { "posted", ""},
     { "searched", ""},
-    { "started", ""},
-    { "submitted", ""},
-    { "uploaded", ""},
-    { "viewed", ""},
+    { "started", ""},*/
+
+    // it will be interpreted as an 'attempt' to (quiz, assignment)
+    { "submitted", "http://adlnet.gov/expapi/verbs/attempted"},
+    /*{ "uploaded", ""},
     { "launched", ""},
     { "subscribed", ""},
     { "unassigned", ""},
     { "unenrolled", ""},
     { "updated", ""},*/
-  { "viewed","http://id.tincanapi.com/verb/viewed"},
+    { "viewed","http://id.tincanapi.com/verb/viewed"}
 };
 
 // supported activity target types
-const std::map<std::string, std::string> activities = {
+const std::map<std::string, std::string> activityTypes = {
   { "collaborate", "https://moodle.karelia.fi/mod/collaborate/view.php?id="},
   { "quiz", "https://moodle.karelia.fi/mod/quiz/view.php?id=" },
   { "page", "https://moodle.karelia.fi/mod/page/view.php?id=" },
@@ -141,7 +143,9 @@ const std::map<std::string, std::string> activities = {
   { "forum", "https://moodle.karelia.fi/mod/forum/view.php?id="},
   { "hsuforum", "https://moodle.karelia.fi/mod/hsuforum/view.php?id="},
   { "lti", "https://moodle.karelia.fi/mod/lti/view.php?id=" },
-  { "course", "https://moodle.karelia.fi/course/view.php?id="}
+  { "course", "https://moodle.karelia.fi/course/view.php?id="},
+  { "assignment", "https://moodle.karelia.fi/mod/assign/view.php?id=" },
+  { "quiz", "https://moodle.karelia.fi/mod/quiz/view.php?id=" }
 };
 
 class Entry
@@ -149,6 +153,9 @@ class Entry
 
 public:
   struct tm when {0};
+  json statement;
+
+  // do we need these?
   string username;
   string related_username;
   string userid;
@@ -160,11 +167,10 @@ public:
   string description; // moodle event id description
   string ip_address;
 
-  string verbname;
-  string verbid;
 
-  string object_id;
-  string object_type;
+
+
+
   
   // parses time structure from string.
   void ParseTimestamp(const string & strtime)
@@ -220,111 +226,136 @@ public:
     ss << "Z";
     return ss.str();
   }
-  void ParseDetails() 
+  void Parse(const std::string & line ) 
   {
+    vector< string > vec;
+    // break line into comma-separated parts.
+    Tokenizer tok(line);
+    vec.assign(tok.begin(),tok.end());
 
-    string regexString = "[Tt]he user with id '([[:digit:]]+)'( has)*( had)* (manually )*([[:alnum:]]+) the '*([[:alnum:]]+)'*( activity)* with (course module id|id) '([[:digit:]]+)'.*";
-
-    regex re(regexString);
-    smatch match;
-    // "course with " + "id '1191'"
-    // "'page' activity with" +" course module id '54973'"
+    ParseTimestamp(vec.at(0));
+    username = vec.at(1);
+    related_username = vec.at(2);
+    context = vec.at(3);
+    component = vec.at(4);
+    event = vec.at(5);
+    description = vec.at(6);
+    // vec.at(7) = origin
+    ip_address = vec.at(8);
+  }
+  
+  string ToXapiStatement()
+  {
+// Actor is starting point for our parsing. 
+    json actor;
     
+    regex re("[Tt]he user with id '([[:digit:]]+)'( has)*( had)* (manually )*([[:alnum:]]+)(.*)");
+    smatch match;
     //////////
     // seek user info
     if ( regex_search(description, match, re) )
     {
-      int i=0;
-      for( auto m : match )
-      {
-	cout << i++ << " : " << m  << "\n";
-      }
-      cerr << "userid " << match[1] << "\n";
-      userid = match[1];
+      string		userid = match[1];
+      stringstream	homepage(HOMEPAGE_URL_PREFIX);
+      homepage << userid;
+      actor = {
+	{"objectType", "Agent"},
+	{"name", username},
+	{"account",
+	 {
+	   {"name", userid }, 
+	   {"homePage", homepage.str()}
+	 }
+	}
+      };  
     }
     else
     {
-      throw xapi_parsing_error("could not extract xapi statement: " + description);
+      throw xapi_parsing_error("could not extract xapi statement for actor: " + description);
     }
     
     //////////
-    // seek verb
+    // create verb jsonseek verb
+
     // Find verb from description
-    string verbstring = match[5];
+    json verb;
+    string verbname = match[5];
     {
-      auto it = verbs.find(verbstring);
-      if ( it == verbs.end()) throw xapi_verb_not_supported_error(verbstring);
-      verbname = it->first;
-      verbid = it->second;
+      auto it = supportedVerbs.find(verbname);
+      if ( it == supportedVerbs.end())
+	throw xapi_verb_not_supported_error(verbname);
+      
+      string verb_xapi_id = it->second;
+      verb = {
+	{"id", verb_xapi_id },
+	{"display",
+	 {
+	   {"en-GB", verbname} // this will probably depend on subtype (see object)
+	 }
+	}
+      };
     }
-
-
+    
     /////////
     // Object
-    
-    // course, page, collaborate, etc.
-    string activity = match[6];
-    // match 7 = activity or just course view etc.
-    //bool isActualActivity = (match[7] == " activity");
-    // match 8 = module or course module id
-    //bool isCourseModule = (match[8] != "id");
-    // match 9 = activity target identifier
-    string tmp_id = match[9];
-
-    
-    auto it = activities.find(activity);
-    if ( it == activities.end()) throw xapi_activity_not_supported_error(activity);
-    object_type = "Activity";
-    object_id = it->second + tmp_id;
-
-    
-  }
-  
-  
-  string ToXapiStatement() const
-  {
-    json j;
-
-    // construct actor statement    
-    stringstream homepage;
-    homepage << HOMEPAGE_URL_PREFIX << userid;
-    json actor = {
-      {"objectType", "Agent"},
-      {"name", username},
-      {"account",
-       {
-	 {"name", userid },
-	 {"homePage", homepage.str()}
-       }
-      }
-    };
-  
-     
-    // create verb json
-    json verb = {
-      {"id", verbid },
-      {"display",
-       {
-	 {"en-GB", verbname}
-       }
-      }
-    };
     // construct object (activity)
-    json object = {
-      { "objectType", object_type},
-      { "id", object_id }
-
-    };
     
+    json object;
+    string details = match[6];
+    smatch match_details;
+    string tmp_id;
+    string activityType;
+    
+    if ( verbname == "submitted" )
+    {
+      regex re_details("the (submission|attempt) with id '([[:digit:]]+)' for the (assignment|quiz) with course module id '([[:digit:]]+)'.*");
+      if ( regex_search(details, match_details, re_details) )
+      {
+	//verb["display"]["en-GB"] = attempted?
+	activityType = match_details[3]; // assignment / quiz
+	tmp_id       = match_details[4];
+	
+      } else throw xapi_parsing_error("submitted: " + details);
+    }
+    else
+    {
+      // course, page, collaborate, etc.
+      regex re_details("the '*([[:alnum:]]+)'*( activity)* with (course module id|id) '([[:digit:]]+)'.*");
+      if ( regex_search(details, match_details, re_details) )
+      {
+	activityType = match_details[1];
+	tmp_id = match_details[4];
+      } else throw xapi_parsing_error("Cannot make sense of: " + details);
+    }
+    
+    auto it = activityTypes.find(activityType);
+    if ( it == activityTypes.end()) throw xapi_activity_type_not_supported_error(activityType);
+    
+    string object_id = it->second + tmp_id;
+    
+    object = {
+      { "objectType", "Activity"},
+      { "id", object_id },
+      { "definition",
+	{
+	  /*{ "description", { "en-GB", ""}},*/
+	  { "type" , "http://id.tincanapi.com/activitytype/school-assignment"},
+	  { "interactionType", "other" }
+	}
+      }
+    };
+
     object["definition"]["name"] =  {
       {"en-GB", context}
-    };    
+    };   
+    
     // construct full xapi statement
-    j["actor"] = actor;
-    j["verb"] = verb;
-    j["timestamp"] = GetTimestamp();
-    j["object"] = object;
-    return j.dump();
+    statement["actor"] = actor;
+
+    statement["verb"] = verb;
+    statement["timestamp"] = GetTimestamp();
+    statement["object"] = object;
+    return statement.dump();
   }
 };
 
@@ -333,14 +364,26 @@ int main( int argc, char **argv)
     using namespace std;
     using namespace boost;
     string data(argv[1]);
-    string learningLockerURL(argv[2]);
+    string learningLockerURL;
+ 
+    /// \TODO use boost options. https://coderwall.com/p/y3xnxg/using-getopt-vs-boost-in-c-to-handle-arguments
+    // check if url was specififed 
+    if ( argc > 2 )
+    {
+      learningLockerURL = argv[2];
+    }
+    else
+    {
+      cout << "alright, dry run - not sending statements.\n";
+    }
+	 
     vector<string> statements;
     
     ifstream in(data.c_str());
     if (!in.is_open()) return 1;
 
-    typedef tokenizer< escaped_list_separator<char> > Tokenizer;
-    vector< string > vec;
+
+
     string line;
     
     // skip first header line 
@@ -350,25 +393,13 @@ int main( int argc, char **argv)
     while (getline(in,line))
     {
 	Entry e;
-	// break line into comma-separated parts.
-	Tokenizer tok(line);
-        vec.assign(tok.begin(),tok.end());
+
 	try
 	{
-	  e.ParseTimestamp(vec.at(0));
-	  e.username = vec.at(1);
-	  e.related_username = vec.at(2);
-	  e.context = vec.at(3);
-	  e.component = vec.at(4);
-	  e.event = vec.at(5);
-	  e.description = vec.at(6);
-	  // vec.at(7) = origin
-	  e.ip_address = vec.at(8);
-
-	  e.ParseDetails();
+	  e.Parse(line);
 	  statements.push_back(e.ToXapiStatement());
 	}
-	catch ( xapi_activity_not_supported_error & ex )
+	catch ( xapi_activity_type_not_supported_error & ex )
 	{
 	  cerr << ex.what() << "\n";
 	  unsupported.push_back(e);
@@ -387,69 +418,73 @@ int main( int argc, char **argv)
 	
         cout << "\n----------------------" << endl;
     }
-
+    
     // send XAPI statements in POST
-    try {
-      curlpp::Cleanup cleaner;
-      curlpp::Easy request;
-
-      ifstream loginDetails("data/login.json");
-      json login;
-      loginDetails >> login;
-
-      
-      string url = learningLockerURL+"/data/xAPI/statements";
-      cerr << "learninglockerurl" << url << "\n";
-      request.setOpt(new curlpp::options::Url(url)); 
-      request.setOpt(new curlpp::options::Verbose(true)); 
-      std::list<std::string> header;
+    if ( learningLockerURL.size() > 0 )
+    {
+      try {
+	curlpp::Cleanup cleaner;
+	curlpp::Easy request;
+	
+	ifstream loginDetails("data/login.json");
+	json login;
+	loginDetails >> login;
 
       
-      //https://stackoverflow.com/questions/25852551/how-to-add-basic-authentication-header-to-webrequest#25852562
-      string tmp;
-      string key = login["key"];
-      string secret = login["secret"];
-      {
+	string url = learningLockerURL+"/data/xAPI/statements";
+	cerr << "learninglockerurl" << url << "\n";
+	request.setOpt(new curlpp::options::Url(url)); 
+	request.setOpt(new curlpp::options::Verbose(true)); 
+	std::list<std::string> header;
+
+      
+	//https://stackoverflow.com/questions/25852551/how-to-add-basic-authentication-header-to-webrequest#25852562
+	string tmp;
+	string key = login["key"];
+	string secret = login["secret"];
+	{
+	  stringstream ss;
+	  ss << key << ":" << secret;
+	  tmp = ss.str();
+	}
+	string auth = "Basic " + base64_encode(reinterpret_cast<const unsigned char *>(tmp.c_str()), tmp.size());
+	header.push_back("Authorization: " + auth);
+      
+	header.push_back("X-Experience-API-Version: 1.0.3");
+	header.push_back("Content-Type: application/json; charset=utf-8");
+	request.setOpt(new curlpp::options::HttpHeader(header)); 
+
 	stringstream ss;
-	ss << key << ":" << secret;
-	tmp = ss.str();
+	ss << "[";
+	auto last_element = statements.end()-1;
+	for_each(statements.begin(), last_element, [&ss] (auto & s) {
+	    ss << s << ",";
+	  });
+	ss << *last_element << "]";
+      
+	request.setOpt(new curlpp::options::PostFields(ss.str()));
+	request.setOpt(new curlpp::options::PostFieldSize(ss.str().size()));
+
+	cerr << ss.str() << "\n";
+      
+	request.perform();
+
       }
-      string auth = "Basic " + base64_encode(reinterpret_cast<const unsigned char *>(tmp.c_str()), tmp.size());
-      header.push_back("Authorization: " + auth);
-      
-      header.push_back("X-Experience-API-Version: 1.0.3");
-      header.push_back("Content-Type: application/json; charset=utf-8");
-      request.setOpt(new curlpp::options::HttpHeader(header)); 
-
-      stringstream ss;
-      ss << "[";
-      auto last_element = statements.end()-1;
-      for_each(statements.begin(), last_element, [&ss] (auto & s) {
-	  ss << s << ",";
-	});
-      ss << *last_element << "]";
-      
-      request.setOpt(new curlpp::options::PostFields(ss.str()));
-      request.setOpt(new curlpp::options::PostFieldSize(ss.str().size()));
-
-      cerr << ss.str() << "\n";
-      
-      request.perform();
-
+      catch ( curlpp::LogicError & e ) {
+	std::cout << e.what() << std::endl;
+      }
+      catch ( curlpp::RuntimeError & e ) {
+	std::cout << e.what() << std::endl;
+      }
     }
-    catch ( curlpp::LogicError & e ) {
-      std::cout << e.what() << std::endl;
-    }
-    catch ( curlpp::RuntimeError & e ) {
-      std::cout << e.what() << std::endl;
-    }
-
+    /*
     cout << "unsupported entries:\n";
     cout << "--------------------\n";
-    // display unsupported entries
+    
     for(auto e : unsupported )
     {
       cout << e.description  << "\n";
-    }
+      }
+*/
     return 0;
 }
