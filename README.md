@@ -26,3 +26,5 @@ Drop all statements
 ## Related documentation
 
 [Submitting discussion statements ](http://xapiquarterly.com/2016/10/instrumenting-xapi-in-forums-discussion-groups/)
+[xAPI Verb registry](https://registry.tincanapi.com/)
+[Activity Schema](https://github.com/activitystreams/activity-schema/blob/master/activity-schema.md)
