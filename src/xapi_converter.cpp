@@ -2,110 +2,12 @@
  * Parses moodle log from CSV and constructs xAPI statements out of it, sending them to LRS.
  * \author anssi grohn at karelia dot fi (c) 2018.
  */
-#include <iostream>     
-#include <fstream>      
-#include <vector>
-#include <string>
-#include <algorithm>    
-#include <iterator>     
-#include <boost/tokenizer.hpp>
-#include <boost/algorithm/string.hpp>
-#include <iomanip>
-#include <ctime>
-#include <sstream>
-#include <iomanip>
-#include <regex>
-#include <json.hpp>
-#include <stdexcept>
-
-#include <cstdlib>
-#include <cerrno>
-#include <curlpp/cURLpp.hpp>
-#include <curlpp/Easy.hpp>
-#include <curlpp/Options.hpp>
-#include <curlpp/Exception.hpp>
+#include <xapi_converter.h>
 //https://nithinkk.wordpress.com/2017/03/16/learning-locker/
 using namespace std;
 using namespace boost;
 using json = nlohmann::json;
-typedef tokenizer< escaped_list_separator<char> > Tokenizer;
 
-static const unsigned char base64_table[65] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-/**
-* base64_encode - Base64 encode
-* @src: Data to be encoded
-* @len: Length of the data to be encoded
-* @out_len: Pointer to output length variable, or %NULL if not used
-* Returns: Allocated buffer of out_len bytes of encoded data,
-* or empty string on failure
-*/
-std::string base64_encode(const unsigned char *src, size_t len)
-{
-    unsigned char *out, *pos;
-    const unsigned char *end, *in;
-
-    size_t olen;
-
-    olen = 4*((len + 2) / 3); /* 3-byte blocks to 4-byte */
-
-    if (olen < len)
-        return std::string(); /* integer overflow */
-
-    std::string outStr;
-    outStr.resize(olen);
-    out = (unsigned char*)&outStr[0];
-
-    end = src + len;
-    in = src;
-    pos = out;
-    while (end - in >= 3) {
-        *pos++ = base64_table[in[0] >> 2];
-        *pos++ = base64_table[((in[0] & 0x03) << 4) | (in[1] >> 4)];
-        *pos++ = base64_table[((in[1] & 0x0f) << 2) | (in[2] >> 6)];
-        *pos++ = base64_table[in[2] & 0x3f];
-        in += 3;
-    }
-
-    if (end - in) {
-        *pos++ = base64_table[in[0] >> 2];
-        if (end - in == 1) {
-            *pos++ = base64_table[(in[0] & 0x03) << 4];
-            *pos++ = '=';
-        }
-        else {
-            *pos++ = base64_table[((in[0] & 0x03) << 4) |
-                (in[1] >> 4)];
-            *pos++ = base64_table[(in[1] & 0x0f) << 2];
-        }
-        *pos++ = '=';
-    }
-
-    return outStr;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-class xapi_parsing_error : public std::runtime_error {
-private:
-  std::string verb;
-public:
-  xapi_parsing_error(const std::string & tmp ) : std::runtime_error( tmp)
- {
-    verb = tmp;
-  }
-  const std::string & get_verb() const { return verb; }
-};
-////////////////////////////////////////////////////////////////////////////////
-class xapi_verb_not_supported_error : public xapi_parsing_error {
-public:
-  xapi_verb_not_supported_error(const std::string & tmp ) : xapi_parsing_error( "Verb '" + tmp + "' not supported"){}
-};
-////////////////////////////////////////////////////////////////////////////////
-class xapi_activity_type_not_supported_error : public xapi_parsing_error {
-public:
-  xapi_activity_type_not_supported_error(const std::string & tmp ) : xapi_parsing_error( "Activity type'" + tmp + "' not supported"){}
-};
 ////////////////////////////////////////////////////////////////////////////////
 const string HOMEPAGE_URL_PREFIX = "https://moodle.karelia.fi/user/profile.php?id=";
 const string VERB_URL_PREFIX = "http://adlnet.gov/expapi/verbs/viewed";
