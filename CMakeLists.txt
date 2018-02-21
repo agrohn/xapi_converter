@@ -8,7 +8,7 @@ find_package(CURL REQUIRED)
 include_directories(xapi_converter PUBLIC include ${CURLPP_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} )
 set(LIBS ${LIBS} ${CURLPP_LIBRARIES} ${CURL_LIBRARIES} )
 
-set(SOURCES src/xapi_converter.cpp)
+set(SOURCES src/xapi_converter.cpp src/base64_encode.cpp)
 set(HEADERS include/json.hpp)
 add_executable( xapi_converter ${HEADERS} ${SOURCES} )
 # Copy data to build
