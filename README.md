@@ -28,3 +28,11 @@ Drop all statements
 [Submitting discussion statements ](http://xapiquarterly.com/2016/10/instrumenting-xapi-in-forums-discussion-groups/)
 [xAPI Verb registry](https://registry.tincanapi.com/)
 [Activity Schema](https://github.com/activitystreams/activity-schema/blob/master/activity-schema.md)
+
+# Moodlerooms logs
+
+Obtain logs: Course maintenance -> Reports -> Logs.
+Obtain grade history: Choose "Grader raport", then view "grade history", load and export into json.
+
+
+
