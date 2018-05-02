@@ -58,14 +58,40 @@ const std::map<std::string, std::string> activityTypes = {
 
 
 
+
+
+
+const int NUM_ARGUMENTS_WHEN_SENDING = 4;
+const int NUM_ARGUMENTS_WITHOUT_SENDING = 3;
+
+bool CheckArguments(int argc, char **argv)
+{
+  bool numArgumentsOk = false;
+  switch ( argc )
+  {
+  case NUM_ARGUMENTS_WHEN_SENDING:
+  case NUM_ARGUMENTS_WITHOUT_SENDING:
+    numArgumentsOk = true;
+    break;
+  default:
+    cout << "Usage:\n" << argv[0] << " <YOUR-LOG-DATA.csv> <YOUR-GRADE_DATA.json> [learning locker server hostname or ip]\n";
+    break;
+  }
+  return numArgumentsOk;
+}
+
 int main( int argc, char **argv)
 {
     using namespace std;
+    ////////////////////////////////////////////////////////////////////////////////
+    // For some hints on usage...
+    if ( CheckArguments(argc,argv) == false ) return 0;
 
+    // Parse arguments
     string data(argv[1]);
     string gradeData(argv[2]);
     string learningLockerURL;
-    
+
     /// \TODO use boost options. https://coderwall.com/p/y3xnxg/using-getopt-vs-boost-in-c-to-handle-arguments
     // check if url was specififed 
     if ( argc > 3 )
@@ -76,14 +102,18 @@ int main( int argc, char **argv)
     {
       cout << "alright, dry run - not sending statements.\n";
     }
-	 
+
     vector<string> statements;
-    
+    // try to open activity log
     ifstream activitylog(data.c_str());
-    if (!activitylog.is_open()) return 1;
-    
+    if (!activitylog.is_open())
+    {
+      cerr << "Cannot open file '" << data << "'\n";
+      return 1;
+    }
+    ////////////////////////////////////////////////////////////////////////////////
+    // actual parsing of statements in activity
     string line;
-    
     // skip first header line 
     getline(activitylog,line);
     std::vector<Entry> unsupported;
@@ -91,7 +121,6 @@ int main( int argc, char **argv)
     while (getline(activitylog,line))
     {
 	Entry e;
-
 	try
 	{
 	  e.Parse(line);
@@ -117,7 +146,7 @@ int main( int argc, char **argv)
         //cout << "\n----------------------" << endl;
     }
     activitylog.close();
-
+    ////////////////////////////////////////////////////////////////////////////////
     // Read grading history. 
     json tmp;
     ifstream gradinglog(gradeData.c_str());
@@ -164,7 +193,7 @@ int main( int argc, char **argv)
       //cout << "\n----------------------" << endl;
     }
     gradinglog.close();
-    
+    ////////////////////////////////////////////////////////////////////////////////
     // send XAPI statements in POST
     if ( learningLockerURL.size() > 0 )
     {
@@ -210,7 +239,6 @@ int main( int argc, char **argv)
       
 	request.setOpt(new curlpp::options::PostFields(ss.str()));
 	request.setOpt(new curlpp::options::PostFieldSize(ss.str().size()));
-
 	cerr << ss.str() << "\n";
       
 	request.perform();
