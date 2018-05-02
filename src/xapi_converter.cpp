@@ -6,64 +6,17 @@
 #include <xapi_errors.h>
 #include <xapi_entry.h>
 #include <xapi_grade.h>
+#include <xapi_statementfactory.h>
+#include <string>
 #include <cctype>
 #include <json.hpp>
 using json = nlohmann::json;
+using namespace std;
 //https://nithinkk.wordpress.com/2017/03/16/learning-locker/
-
-
 ////////////////////////////////////////////////////////////////////////////////
-
-const string VERB_URL_PREFIX = "http://adlnet.gov/expapi/verbs/viewed";
-std::map<std::string, std::string> TaskNameToTaskID = {};
-std::map<std::string, std::string> UserNameToUserID = {};
-
-const std::map<std::string, std::string> supportedVerbs = {
-  /*{ "added", ""},
-    { "assigned",""},
-    { "created",""},
-    { "deleted",""},
-    { "enrolled",""},
-    { "ended", ""}, 
-    { "graded", ""},
-    { "posted", ""},
-    { "searched", ""},
-    { "started", ""},*/
-    { "submitted", "http://adlnet.gov/expapi/verbs/answered"},
-    // { "attempted", "http://adlnet.gov/expapi/verbs/attempted"},
-    { "scored", "http://adlnet.gov/expapi/verbs/scored" },
-    /*{ "uploaded", ""},
-    { "launched", ""},
-    { "subscribed", ""},
-    { "unassigned", ""},
-    { "unenrolled", ""},
-    { "updated", ""},*/
-    { "viewed","http://id.tincanapi.com/verb/viewed"}
-};
-
-// supported activity target types
-const std::map<std::string, std::string> activityTypes = {
-  { "collaborate", "https://moodle.karelia.fi/mod/collaborate/view.php?id="},
-  { "quiz", "https://moodle.karelia.fi/mod/quiz/view.php?id=" },
-  { "page", "https://moodle.karelia.fi/mod/page/view.php?id=" },
-  { "resource", "https://moodle.karelia.fi/mod/resource/view.php?id="},
-  { "url", "https://moodle.karelia.fi/mod/url/view.php?id=" },
-  { "forum", "https://moodle.karelia.fi/mod/forum/view.php?id="},
-  { "hsuforum", "https://moodle.karelia.fi/mod/hsuforum/view.php?id="},
-  { "lti", "https://moodle.karelia.fi/mod/lti/view.php?id=" },
-  { "course", "https://moodle.karelia.fi/course/view.php?id="},
-  { "assignment", "https://moodle.karelia.fi/mod/assign/view.php?id=" },
-  { "quiz", "https://moodle.karelia.fi/mod/quiz/view.php?id=" }
-};
-
-
-
-
-
-
 const int NUM_ARGUMENTS_WHEN_SENDING = 4;
 const int NUM_ARGUMENTS_WITHOUT_SENDING = 3;
-
+////////////////////////////////////////////////////////////////////////////////
 bool CheckArguments(int argc, char **argv)
 {
   bool numArgumentsOk = false;
@@ -85,7 +38,7 @@ bool CheckArguments(int argc, char **argv)
   }
   return numArgumentsOk;
 }
-
+////////////////////////////////////////////////////////////////////////////////
 int main( int argc, char **argv)
 {
     using namespace std;
@@ -122,21 +75,17 @@ int main( int argc, char **argv)
     string line;
     // skip first header line 
     getline(activitylog,line);
-    std::vector<Entry> unsupported;
+
 
     while (getline(activitylog,line))
     {
-	Entry e;
 	try
 	{
-	  e.Parse(line);
-	  statements.push_back(e.ToXapiStatement());
+	  statements.push_back(	XAPI::StatementFactory::CreateActivity(line) );
 	}
 	catch ( xapi_activity_type_not_supported_error & ex )
 	{
 	  cerr << ex.what() << "\n";
-	  unsupported.push_back(e);
-	  //return 1;
 	}
 	catch ( xapi_parsing_error & ex )
 	{
@@ -147,8 +96,6 @@ int main( int argc, char **argv)
 	  cout << "could not parse time\n";
 	}
 	// vector now contains strings from one row, output to cout here
-        
-	
         //cout << "\n----------------------" << endl;
     }
     activitylog.close();
@@ -167,15 +114,10 @@ int main( int argc, char **argv)
     {
       // each log column is an array elemetn
       std::vector<string> lineasvec = *it;
-      GradeEntry e;
-      
       try
       {
 	// use overwritten version of Parse
-	e.Parse(lineasvec);
-	string s = e.ToXapiStatement();
-	statements.push_back(s);
-	cerr << s << "\n";
+	statements.push_back(XAPI::StatementFactory::CreateGradeEntry(lineasvec));
       }
       catch ( xapi_no_result_error & ex )
       {
@@ -184,8 +126,7 @@ int main( int argc, char **argv)
       catch ( xapi_cached_user_not_found_error & ex )
       {
 	cerr << ex.what() << "\n";
-	unsupported.push_back(e);
-	  //return 1;
+
       }
       catch ( xapi_cached_task_not_found_error & ex )
       {

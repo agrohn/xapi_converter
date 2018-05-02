@@ -8,8 +8,23 @@ find_package(CURL REQUIRED)
 include_directories(xapi_converter PUBLIC include ${CURLPP_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} )
 set(LIBS ${LIBS} ${CURLPP_LIBRARIES} ${CURL_LIBRARIES} )
 
-set(SOURCES src/xapi_converter.cpp src/base64_encode.cpp)
-set(HEADERS include/json.hpp)
+set(SOURCES
+  src/xapi_converter.cpp
+  src/xapi_grade.cpp
+  src/xapi_entry.cpp
+  src/xapi_activityentry.cpp
+  src/xapi_statementfactory.cpp
+  src/base64_encode.cpp
+  )
+set(HEADERS
+  include/json.hpp
+  include/xapi_entry.h
+  include/xapi_activityentry.h
+  include/xapi_grade.h
+  include/xapi_errors.h
+  include/xapi_statementfactory.h
+  include/xapi_converter.h
+  )
 add_executable( xapi_converter ${HEADERS} ${SOURCES} )
 # Copy data to build
 file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

@@ -1,0 +1,18 @@
+#pragma once
+#include <string>
+#include <vector>
+////////////////////////////////////////////////////////////////////////////////
+namespace XAPI
+{
+  class xapi_entry;
+  //////////////////////////////////////////////////////////////////////////////
+  class StatementFactory
+  {
+  private:
+    StatementFactory();
+  public:
+    static std::string CreateActivity( const std::string & moodleLogLine );
+    static std::string CreateGradeEntry( const std::vector<std::string> & lineAsVector );
+  };
+}
+////////////////////////////////////////////////////////////////////////////////

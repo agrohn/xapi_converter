@@ -7,7 +7,7 @@ private:
   std::string verb;
 public:
   xapi_parsing_error(const std::string & tmp ) : std::runtime_error( tmp)
- {
+  {
     verb = tmp;
   }
   const std::string & get_verb() const { return verb; }
@@ -16,6 +16,11 @@ public:
 class xapi_verb_not_supported_error : public xapi_parsing_error {
 public:
   xapi_verb_not_supported_error(const std::string & tmp ) : xapi_parsing_error( "Verb '" + tmp + "' not supported"){}
+};
+////////////////////////////////////////////////////////////////////////////////
+class xapi_could_not_create_statement_error : public xapi_parsing_error {
+public:
+  xapi_could_not_create_statement_error(const std::string & tmp ) : xapi_parsing_error(tmp){}
 };
 ////////////////////////////////////////////////////////////////////////////////
 class xapi_activity_type_not_supported_error : public xapi_parsing_error {
