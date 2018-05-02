@@ -25,11 +25,6 @@ public:
   {
     std::vector<string> tokens;
     boost::split( tokens, strtime, boost::is_any_of(", :"));
-    /*int c=0;
-    for( string & t : tokens )
-    {
-      cerr << c++ << ":" << t << "\n";
-      }*/
     
     {
       stringstream ss;
@@ -72,36 +67,9 @@ public:
   
   void Parse( const std::vector<std::string> & vec ) 
   {
-      // break line into comma-separated parts.
-    /*int c=0;
-    for( auto s : vec )
-    {
-      cerr << c++ << ":" << s << "\n";
-      }*/
-    try
-    {
-      ParseTimestamp(vec.at(0));
-    }
-    catch ( runtime_error & ex )
-    {
-
-      cerr << "Error in parsing following grade entry: " << ex.what() << "\n";
-      int count = 0;
-      for( auto s : vec )
-      {
-	cerr << "vec[" << count++ << "] = " << s << "\n";
-      }
-
-      std::vector<string> tokens;
-      boost::split( tokens, vec.at(0), boost::is_any_of(", :"));
-      cerr << "tokenized date fields:\n";
-      int c=0;
-      for( string & t : tokens )
-      {
-	cerr << "token[" << c++ << "] = '" << t << "'\n";
-      }
-      exit(1);
-    }
+    // break line into comma-separated parts.
+    ParseTimestamp(vec.at(0));
+   
     username = vec.at(1); // gradee
 
     related_username = vec.at(6); // grader
