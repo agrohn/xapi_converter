@@ -57,6 +57,14 @@ public:
       stringstream ss;
       ss << tokens.at(1);
       if ( !(ss >> when.tm_mon)  ) throw runtime_error("Conversion error, mon");
+      // sanity check for month value
+      if ( when.tm_mon < 1 || when.tm_mon > 12 )
+      {
+	stringstream smsg;
+	smsg << "Conversion error, month value out of range 1-12.";
+	smsg << "Got: '" << tokens.at(1) << "', value is : " << when.tm_mon;
+	throw runtime_error(smsg.str());
+      }
     }
     {
       stringstream ss;
@@ -96,6 +104,7 @@ public:
   virtual void Parse(const std::string & line ) 
   {
     vector< string > vec;
+    
     // break line into comma-separated parts.
     Tokenizer tok(line);
     vec.assign(tok.begin(),tok.end());
@@ -130,7 +139,13 @@ public:
     // seek user info
     if ( regex_search(description, match, re) )
     {
-      string		userid = match[1];
+      userid = match[1];
+      //cerr << "matches:\n";
+      /*int c=0;
+      for(auto & m : match )
+      {
+	cerr << c++ << ":" << m << "\n";
+	}*/
       stringstream	homepage;
       homepage << HOMEPAGE_URL_PREFIX << userid;
       // construct fake email for testing
@@ -146,12 +161,15 @@ public:
 	{"homePage", homepage.str()}
       };
       // Create username to id mapping for grade parsing phase
-
+      
     }
     else
     {
       throw xapi_parsing_error("could not extract xapi statement for actor: " + description);
     }
+
+    if ( username.empty() ) throw xapi_parsing_error("no username found for: " + description);
+    //cerr << "setting username-id pair: " << username << " -> " << userid << "\n";
     UserNameToUserID[username] = userid;
     
     //////////
@@ -214,7 +232,7 @@ public:
     string object_id = it->second + tmp_id;
 
     // assign mapping for later use in grading log parsing.
-    //cerr << "appending task '" << context << "'\n";
+    //cerr << "appending task '" << context << "' -> " << object_id << "\n";
     TaskNameToTaskID[context] = object_id;
     
     object = {
@@ -239,6 +257,8 @@ public:
     statement["verb"] = verb;
     statement["timestamp"] = GetTimestamp();
     statement["object"] = object;
+    if ( GetTimestamp().length() > 17 )
+      throw xapi_parsing_error("Timestamp length is off: " + GetTimestamp());
     return statement.dump();
   }
 };
