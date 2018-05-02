@@ -74,7 +74,13 @@ bool CheckArguments(int argc, char **argv)
     numArgumentsOk = true;
     break;
   default:
-    cout << "Usage:\n" << argv[0] << " <YOUR-LOG-DATA.csv> <YOUR-GRADE_DATA.json> [learning locker server hostname or ip]\n";
+    cout << "Command-line tool for sending XAPI statements to learning locker from  Moodle logs\n";
+    cout << "Released under GPLv3 - use at your own risk. \n\n";
+    cout << "Prerequisities:\n";
+    cout << "\tLearning locker client credentials must be in json format in data/login.json.\n";
+    cout << "\tSimple objexct { \"key\": \"\", \"secret\":\"\"}\n\n";
+    cout << "Usage:\n";
+    cout << "\t" << argv[0] << " <YOUR-LOG-DATA.csv> <YOUR-GRADE_DATA.json> [learning locker server hostname or ip]\n\n";
     break;
   }
   return numArgumentsOk;
