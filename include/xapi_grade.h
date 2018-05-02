@@ -6,7 +6,7 @@ class GradeEntry : public Entry
 {
   const std::map<std::string,int> monthValues= {
     { "tammikuu", 1},
-    { "helmmikuu", 2},
+    { "helmikuu", 2},
     { "maaliskuu", 3},
     { "huhtikuu", 4},
     { "toukokuu", 5},
@@ -24,7 +24,7 @@ public:
   void ParseTimestamp(const string & strtime) override
   {
     std::vector<string> tokens;
-    boost::split( tokens, strtime, boost::is_any_of(". :"));
+    boost::split( tokens, strtime, boost::is_any_of(", :"));
     /*int c=0;
     for( string & t : tokens )
     {
@@ -33,31 +33,39 @@ public:
     
     {
       stringstream ss;
-      ss << tokens.at(1);
+      ss << tokens.at(2);
       if ( !(ss >> when.tm_mday) ) throw runtime_error("Conversion error, day");
     }
     {
       stringstream ss;
-      auto it = monthValues.find(tokens.at(2));
+      auto it = monthValues.find(tokens.at(3));
       ss << it->second;
       
       if ( !(ss >> when.tm_mon)  ) throw runtime_error("Conversion error, mon");
+      // sanity check for month value
+      if ( when.tm_mon < 1 || when.tm_mon > 12 )
+      {
+	stringstream smsg;
+	smsg << "Conversion error in grade, month value out of range 1-12.";
+	smsg << "Got: '" << tokens.at(3) << "', value is : " << when.tm_mon;
+	throw runtime_error(smsg.str());
+      }
     }
     {
       stringstream ss;
-      ss << tokens.at(3);
+      ss << tokens.at(4);
       if ( !(ss >> when.tm_year)  ) throw runtime_error("Conversion error, year");
     }
 
     {
       stringstream ss;
-      ss << tokens.at(4);
+      ss << tokens.at(6);
       if ( !(ss >> when.tm_hour)  ) throw runtime_error("Conversion error, hour");
     }
 
     {
       stringstream ss;
-      ss << tokens.at(5);
+      ss << tokens.at(7);
       if ( !(ss >> when.tm_sec)  ) throw runtime_error("Conversion error, second");
     }
   }
@@ -70,8 +78,30 @@ public:
     {
       cerr << c++ << ":" << s << "\n";
       }*/
-		     
-    ParseTimestamp(vec.at(0));
+    try
+    {
+      ParseTimestamp(vec.at(0));
+    }
+    catch ( runtime_error & ex )
+    {
+
+      cerr << "Error in parsing following grade entry: " << ex.what() << "\n";
+      int count = 0;
+      for( auto s : vec )
+      {
+	cerr << "vec[" << count++ << "] = " << s << "\n";
+      }
+
+      std::vector<string> tokens;
+      boost::split( tokens, vec.at(0), boost::is_any_of(", :"));
+      cerr << "tokenized date fields:\n";
+      int c=0;
+      for( string & t : tokens )
+      {
+	cerr << "token[" << c++ << "] = '" << t << "'\n";
+      }
+      exit(1);
+    }
     username = vec.at(1); // gradee
 
     related_username = vec.at(6); // grader
@@ -115,10 +145,11 @@ public:
     
     if ( UserNameToUserID.find(username) == UserNameToUserID.end())
     {
-      throw xapi_cached_user_not_found_error(userid);
+      throw xapi_cached_user_not_found_error(username);
     }
     stringstream	homepage;
-    homepage << HOMEPAGE_URL_PREFIX <<  UserNameToUserID[userid];
+    string userid = UserNameToUserID[username];
+    homepage << HOMEPAGE_URL_PREFIX << userid;
 
     // define user receiving a score
     actor = {
@@ -126,7 +157,7 @@ public:
 	{"name", username},
 	{"account",
 	 {
-	   {"name", UserNameToUserID[userid] },
+	   {"name", userid },
 	   {"homePage", homepage.str() }
 	 }
 	}
