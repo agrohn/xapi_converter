@@ -33,6 +33,9 @@ namespace XAPI
     std::string verb; // xapi-related
     std::string description; // moodle event id description
     std::string ip_address;
+
+    std::string course_name; ///< Used to identify course (human-readable)
+    std::string course_id; ///< Used to identify course (unique url).
   public:    
     virtual ~Entry();
     // parses time structure from string.

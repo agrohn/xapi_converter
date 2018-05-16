@@ -7,6 +7,9 @@ using namespace XAPI;
 const string VERB_URL_PREFIX = "http://adlnet.gov/expapi/verbs/viewed";
 std::map<std::string, std::string> TaskNameToTaskID = {};
 std::map<std::string, std::string> UserNameToUserID = {};
+
+std::string XAPI::StatementFactory::course_id = std::string();
+std::string XAPI::StatementFactory::course_name = std::string();
 ////////////////////////////////////////////////////////////////////////////////
 const std::map<std::string, std::string> supportedVerbs = {
   /*{ "added", ""},
@@ -55,6 +58,9 @@ std::string
 XAPI::StatementFactory::CreateActivity( const std::string & line )
 {
   ActivityEntry e;
+  // set from command line
+  e.course_id = course_id;
+  e.course_name = course_name;
   e.Parse(line);
   return e.ToXapiStatement();
 }
@@ -62,6 +68,9 @@ std::string
 XAPI::StatementFactory::CreateGradeEntry( const std::vector<std::string> & lineAsVector )
 {
   GradeEntry e;
+  // set from command line
+  e.course_id = course_id;
+  e.course_name = course_name;
   e.Parse(lineAsVector);
   return e.ToXapiStatement();
 }
