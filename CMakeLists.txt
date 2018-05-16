@@ -4,9 +4,10 @@ project(xapi_converter)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(Curlpp REQUIRED)
 find_package(CURL REQUIRED)
+find_package(Boost REQUIRED program_options )
 
-include_directories(xapi_converter PUBLIC include ${CURLPP_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} )
-set(LIBS ${LIBS} ${CURLPP_LIBRARIES} ${CURL_LIBRARIES} )
+include_directories(xapi_converter PUBLIC include ${CURLPP_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+set(LIBS ${LIBS} ${CURLPP_LIBRARIES} ${CURL_LIBRARIES} ${Boost_LIBRARIES})
 
 set(SOURCES
   src/xapi_converter.cpp
