@@ -207,13 +207,40 @@ XAPI::ActivityEntry::ToXapiStatement()
   object["definition"]["name"] =  {
     {"en-GB", context}
   };   
-    
+  // constrct context for activity (course etc.)
+  json activityContext;
+  
+  activityContext =  {
+    { "contextActivities", {
+	{ "grouping", {
+	    { "objectType", "Activity" },
+	    { "id", course_id },
+	    { "definition",  {
+		{ "description", {
+		    { "en-GB", course_name}
+		  }
+		},
+		{ "type", "http://adlnet.gov/expapi/activities/course"}
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  };
+
+
+  
   // construct full xapi statement
   statement["actor"] = actor;
 
   statement["verb"] = verb;
   statement["timestamp"] = GetTimestamp();
   statement["object"] = object;
+  statement["context"] = activityContext;
+
+
+  
   if ( GetTimestamp().length() > 17 )
     throw xapi_parsing_error("Timestamp length is off: " + GetTimestamp());
   return statement.dump();
