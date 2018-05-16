@@ -10,202 +10,298 @@
 #include <string>
 #include <cctype>
 #include <json.hpp>
+
 using json = nlohmann::json;
 using namespace std;
 //https://nithinkk.wordpress.com/2017/03/16/learning-locker/
 ////////////////////////////////////////////////////////////////////////////////
 const int NUM_ARGUMENTS_WHEN_SENDING = 4;
 const int NUM_ARGUMENTS_WITHOUT_SENDING = 3;
-////////////////////////////////////////////////////////////////////////////////
-bool CheckArguments(int argc, char **argv)
+namespace po = boost::program_options;
+
+XAPI::Application::Application() : desc("Command-line tool for sending XAPI statements to learning locker from  Moodle logs\nReleased under GPLv3 - use at your own risk. \n\nPrerequisities:\n\tLearning locker client credentials must be in json format in data/login.json.\n\tSimple object { \"key\": \"\", \"secret\":\"\"}\n\nUsage:\n")
 {
-  bool numArgumentsOk = false;
-  switch ( argc )
-  {
-  case NUM_ARGUMENTS_WHEN_SENDING:
-  case NUM_ARGUMENTS_WITHOUT_SENDING:
-    numArgumentsOk = true;
-    break;
-  default:
-    cout << "Command-line tool for sending XAPI statements to learning locker from  Moodle logs\n";
-    cout << "Released under GPLv3 - use at your own risk. \n\n";
-    cout << "Prerequisities:\n";
-    cout << "\tLearning locker client credentials must be in json format in data/login.json.\n";
-    cout << "\tSimple objexct { \"key\": \"\", \"secret\":\"\"}\n\n";
-    cout << "Usage:\n";
-    cout << "\t" << argv[0] << " <YOUR-LOG-DATA.csv> <YOUR-GRADE_DATA.json> [learning locker server hostname or ip]\n\n";
-    break;
-  }
-  return numArgumentsOk;
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // For some hints on usage...
+  
+
+  // options 
+  desc.add_options()
+  ("log", po::value<string>(), "<YOUR-LOG-DATA.csv> Actual course log data in CSV format")
+  ("grades", po::value<string>(), "<YOUR-GRADE_DATA.json>  Grade data obtained from moodle")
+  ("courseurl", po::value<string>(), "<course_url> Unique course moodle web address, ends in ?id=xxxx")
+  ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
+  ("host", po::value<string>(), "<addr> learning locker server hostname or ip. If not defined, performs dry run.")
+  ("print", "statements json is printed to stdout");
 }
 ////////////////////////////////////////////////////////////////////////////////
-int main( int argc, char **argv)
+XAPI::Application::~Application()
 {
-    using namespace std;
-    ////////////////////////////////////////////////////////////////////////////////
-    // For some hints on usage...
-    if ( CheckArguments(argc,argv) == false ) return 0;
 
-    // Parse arguments
-    string data(argv[1]);
-    string gradeData(argv[2]);
-    string learningLockerURL;
+}
+////////////////////////////////////////////////////////////////////////////////
+bool
+XAPI::Application::ParseArguments( int argc, char **argv )
+{
+  namespace po = boost::program_options;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::notify(vm);
 
-    /// \TODO use boost options. https://coderwall.com/p/y3xnxg/using-getopt-vs-boost-in-c-to-handle-arguments
-    // check if url was specififed 
-    if ( argc > 3 )
+  if ( vm.count("log")  )
+    data = vm["log"].as<string>();
+
+  if ( vm.count("grades") )
+    gradeData = vm["grades"].as<string>();
+
+  if ( vm.count("courseurl") == 0) { cerr << "courseurl missing\n"; return false;}
+  else context.courseurl = vm["courseurl"].as<string>();
+
+  if ( vm.count("coursename") == 0) { cerr << "coursename missing\n"; return false;}
+  else context.coursename = vm["coursename"].as<string>();
+  // check if learning locker url was specified
+  if ( vm.count("host") )
+    learningLockerURL = vm["host"].as<string>();
+  print =  vm.count("print") > 0;
+  XAPI::StatementFactory::course_id   = context.courseurl;
+  XAPI::StatementFactory::course_name = context.coursename;
+  
+  return true;
+}
+////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::Application::PrintUsage()
+{
+  cout << desc << "\n";
+}
+////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::Application::ParseEventLog()
+{
+  // try to open activity log
+  ifstream activitylog(data.c_str());
+  if (!activitylog.is_open())
+  {
+    stringstream ss;
+    ss << "Cannot open file '" << data << "'\n";
+    throw xapi_parsing_error( ss.str());
+  }
+  ////////////////////////////////////////////////////////////////////////////////
+  // actual parsing of statements in activity
+  string line;
+  // skip first header line 
+  getline(activitylog,line);
+
+  while (getline(activitylog,line))
+  {
+    try
     {
-      learningLockerURL = argv[3];
+      statements.push_back(	XAPI::StatementFactory::CreateActivity(line) );
     }
-    else
+    catch ( xapi_activity_type_not_supported_error & ex )
     {
-      cout << "alright, dry run - not sending statements.\n";
+      cerr << ex.what() << "\n";
     }
-
-    vector<string> statements;
-    // try to open activity log
-    ifstream activitylog(data.c_str());
-    if (!activitylog.is_open())
+    catch ( xapi_parsing_error & ex )
     {
-      cerr << "Cannot open file '" << data << "'\n";
-      return 1;
+      cerr << ex.what() << "\n";
     }
-    ////////////////////////////////////////////////////////////////////////////////
-    // actual parsing of statements in activity
-    string line;
-    // skip first header line 
-    getline(activitylog,line);
-
-
-    while (getline(activitylog,line))
+    catch ( std::out_of_range & ex )
     {
-	try
-	{
-	  statements.push_back(	XAPI::StatementFactory::CreateActivity(line) );
-	}
-	catch ( xapi_activity_type_not_supported_error & ex )
-	{
-	  cerr << ex.what() << "\n";
-	}
-	catch ( xapi_parsing_error & ex )
-	{
-	  cerr << ex.what() << "\n";
-	}
-	catch ( std::out_of_range & ex )
-	{
-	  cout << "could not parse time\n";
-	}
-	// vector now contains strings from one row, output to cout here
-        //cout << "\n----------------------" << endl;
+      cout << "could not parse time\n";
     }
-    activitylog.close();
-    ////////////////////////////////////////////////////////////////////////////////
-    // Read grading history. 
-    json tmp;
-    ifstream gradinglog(gradeData.c_str());
-    if ( !gradinglog.is_open()) return 1;
-    gradinglog >> tmp;
-    // This is a bit hack-ish, reading as json,
-    // which returns it as array that contains one array containing log data.
-    json grading = tmp[0];
-    // for each log entry
-    int entries_without_result = 0;
-    for(auto it = grading.begin(); it != grading.end(); ++it)
+    // vector now contains strings from one row, output to cout here
+    //cout << "\n----------------------" << endl;
+  }
+  activitylog.close();
+}
+////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::Application::ParseGradeLog()
+{
+  ////////////////////////////////////////////////////////////////////////////////
+  // Read grading history. 
+  json tmp;
+  ifstream gradinglog(gradeData.c_str());
+  if ( !gradinglog.is_open())
+  {
+    stringstream ss;
+    ss << "Cannot open file '" << gradeData << "'\n";
+    throw xapi_parsing_error( ss.str());
+  }
+  gradinglog >> tmp;
+  // This is a bit hack-ish, reading as json,
+  // which returns it as array that contains one array containing log data.
+  json grading = tmp[0];
+  // for each log entry
+  int entries_without_result = 0;
+  for(auto it = grading.begin(); it != grading.end(); ++it)
+  {
+    // each log column is an array elemetn
+    std::vector<string> lineasvec = *it;
+    try
     {
-      // each log column is an array elemetn
-      std::vector<string> lineasvec = *it;
-      try
-      {
-	// use overwritten version of Parse
-	statements.push_back(XAPI::StatementFactory::CreateGradeEntry(lineasvec));
-      }
-      catch ( xapi_no_result_error & ex )
-      {
-	entries_without_result++;
-      }
-      catch ( xapi_cached_user_not_found_error & ex )
-      {
-	cerr << ex.what() << "\n";
-
-      }
-      catch ( xapi_cached_task_not_found_error & ex )
-      {
-	cerr << ex.what() << "\n";
-      }
-      catch ( std::exception & ex )
-      {
-	cerr << ex.what() << "\n";
-      }
-      // vector now contains strings from one row, output to cout here
-      //cout << "\n----------------------" << endl;
+      // use overwritten version of Parse
+      statements.push_back(XAPI::StatementFactory::CreateGradeEntry(lineasvec));
     }
-    gradinglog.close();
-    ////////////////////////////////////////////////////////////////////////////////
-    // send XAPI statements in POST
-    if ( learningLockerURL.size() > 0 )
+    catch ( xapi_no_result_error & ex )
     {
-      try {
-	curlpp::Cleanup cleaner;
-	curlpp::Easy request;
+      entries_without_result++;
+    }
+    catch ( xapi_cached_user_not_found_error & ex )
+    {
+      cerr << ex.what() << "\n";
+
+    }
+    catch ( xapi_cached_task_not_found_error & ex )
+    {
+      cerr << ex.what() << "\n";
+    }
+    catch ( std::exception & ex )
+    {
+      cerr << ex.what() << "\n";
+    }
+    // vector now contains strings from one row, output to cout here
+    //cout << "\n----------------------" << endl;
+  }
+  gradinglog.close();
+}
+////////////////////////////////////////////////////////////////////////////////
+std::string
+XAPI::Application::GetStatementsJSON() const
+{
+  stringstream ss;
+  ss << "[";
+  auto last_element = statements.end()-1;
+  for_each(statements.begin(), last_element, [&ss] (auto & s) {
+      ss << s << ",";
+    });
+  ss << *last_element << "]";
+  return ss.str();
+}
+////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::Application::SendStatements()
+{
+  ////////////////////////////////////////////////////////////////////////////////
+  // send XAPI statements in POST
+  if ( learningLockerURL.size() > 0 )
+  {
+    try {
+      curlpp::Cleanup cleaner;
+      curlpp::Easy request;
 	
-	ifstream loginDetails("data/login.json");
-	json login;
-	loginDetails >> login;
+      ifstream loginDetails("data/login.json");
+      json login;
+      loginDetails >> login;
 
       
-	string url = learningLockerURL+"/data/xAPI/statements";
-	cerr << "learninglockerurl" << url << "\n";
-	request.setOpt(new curlpp::options::Url(url)); 
-	request.setOpt(new curlpp::options::Verbose(true)); 
-	std::list<std::string> header;
+      string url = learningLockerURL+"/data/xAPI/statements";
+      cerr << "learninglockerurl" << url << "\n";
+      request.setOpt(new curlpp::options::Url(url)); 
+      request.setOpt(new curlpp::options::Verbose(true)); 
+      std::list<std::string> header;
 
       
-	//https://stackoverflow.com/questions/25852551/how-to-add-basic-authentication-header-to-webrequest#25852562
-	string tmp;
-	string key = login["key"];
-	string secret = login["secret"];
-	{
-	  stringstream ss;
-	  ss << key << ":" << secret;
-	  tmp = ss.str();
-	}
-	string auth = "Basic " + base64_encode(reinterpret_cast<const unsigned char *>(tmp.c_str()), tmp.size());
-	header.push_back("Authorization: " + auth);
-      
-	header.push_back("X-Experience-API-Version: 1.0.3");
-	header.push_back("Content-Type: application/json; charset=utf-8");
-	request.setOpt(new curlpp::options::HttpHeader(header)); 
-
+      //https://stackoverflow.com/questions/25852551/how-to-add-basic-authentication-header-to-webrequest#25852562
+      string tmp;
+      string key = login["key"];
+      string secret = login["secret"];
+      {
 	stringstream ss;
-	ss << "[";
-	auto last_element = statements.end()-1;
-	for_each(statements.begin(), last_element, [&ss] (auto & s) {
-	    ss << s << ",";
-	  });
-	ss << *last_element << "]";
+	ss << key << ":" << secret;
+	tmp = ss.str();
+      }
+      string auth = "Basic " + base64_encode(reinterpret_cast<const unsigned char *>(tmp.c_str()), tmp.size());
+      header.push_back("Authorization: " + auth);
       
-	request.setOpt(new curlpp::options::PostFields(ss.str()));
-	request.setOpt(new curlpp::options::PostFieldSize(ss.str().size()));
-	cerr << ss.str() << "\n";
-      
-	request.perform();
+      header.push_back("X-Experience-API-Version: 1.0.3");
+      header.push_back("Content-Type: application/json; charset=utf-8");
+      request.setOpt(new curlpp::options::HttpHeader(header)); 
 
-      }
-      catch ( curlpp::LogicError & e ) {
-	std::cout << e.what() << std::endl;
-      }
-      catch ( curlpp::RuntimeError & e ) {
-	std::cout << e.what() << std::endl;
-      }
+      stringstream ss;
+      ss << "[";
+      auto last_element = statements.end()-1;
+      for_each(statements.begin(), last_element, [&ss] (auto & s) {
+	  ss << s << ",";
+	});
+      ss << *last_element << "]";
+      
+      request.setOpt(new curlpp::options::PostFields(ss.str()));
+      request.setOpt(new curlpp::options::PostFieldSize(ss.str().size()));
+      cerr << ss.str() << "\n";
+      
+      request.perform();
+
     }
-    /*
+    catch ( curlpp::LogicError & e ) {
+      std::cout << e.what() << std::endl;
+    }
+    catch ( curlpp::RuntimeError & e ) {
+      std::cout << e.what() << std::endl;
+    }
+  }
+  /*
     cout << "unsupported entries:\n";
     cout << "--------------------\n";
     
     for(auto e : unsupported )
     {
-      cout << e.description  << "\n";
-      }
-*/
+    cout << e.description  << "\n";
+    }
+  */
+
+}
+////////////////////////////////////////////////////////////////////////////////
+bool
+XAPI::Application::HasGradeData() const
+{
+  return !gradeData.empty();
+}
+////////////////////////////////////////////////////////////////////////////////
+bool
+XAPI::Application::HasLogData() const
+{
+  return !data.empty();
+}
+////////////////////////////////////////////////////////////////////////////////
+bool
+XAPI::Application::IsDryRun() const
+{
+  return learningLockerURL.empty();
+}
+bool
+XAPI::Application::ShouldPrint() const
+{
+  return print;
+}
+////////////////////////////////////////////////////////////////////////////////
+int main( int argc, char **argv)
+{
+    using namespace std;
+
+    XAPI::Application app;
+    if ( app.ParseArguments(argc, argv) == false )
+    {
+      app.PrintUsage();
+      return 1;
+    }
+
+    cout << "course url" << XAPI::StatementFactory::course_id << "\n";
+    cout << "course name" << XAPI::StatementFactory::course_name << "\n";
+    
+    if ( app.HasLogData()) app.ParseEventLog();
+    if ( app.HasGradeData()) app.ParseGradeLog();
+    if ( app.ShouldPrint())
+    {
+      cout << app.GetStatementsJSON() << "\n";
+    }
+    if ( app.IsDryRun())
+      cout << "alright, dry run - not sending statements.\n";
+    else
+      app.SendStatements();
+    
+
     return 0;
 }
+////////////////////////////////////////////////////////////////////////////////
