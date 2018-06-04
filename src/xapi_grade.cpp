@@ -190,23 +190,27 @@ XAPI::GradeEntry::ToXapiStatement()
   };   
 
   json activityContext;
-  activityContext =  {
-    { "contextActivities", {
-	{ "grouping", {
-	    { "objectType", "Activity" },
-	    { "id", course_id },
-	    { "definition",  {
-		{ "description", {
-		    { "en-GB", course_name}
-		  }
-		},
-		{ "type", "http://adlnet.gov/expapi/activities/course"}
-	      }
+  json grouping = {
+    { "grouping", {
+	{
+	  { "objectType", "Activity" },
+	  { "id", course_id },
+	  { "definition",
+	    {
+	      { "description",
+		{
+		  { "en-GB", course_name}
+		}
+	      },
+	      { "type", "http://adlnet.gov/expapi/activities/course"}
 	    }
 	  }
 	}
       }
     }
+  };
+  activityContext =  {
+    { "contextActivities", grouping }
   };
 
   statement["actor"] = actor;
