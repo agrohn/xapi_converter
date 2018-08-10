@@ -48,6 +48,19 @@ const std::map<std::string, std::string> activityTypes = {
   { "assignment", "https://moodle.karelia.fi/mod/assign/view.php?id=" },
   { "quiz", "https://moodle.karelia.fi/mod/quiz/view.php?id=" }
 };
+const std::map<std::string, std::string> moodleXapiActivity = {
+  { "collaborate", "http://adlnet.gov/expapi/activities/media"},
+  { "quiz", "http://id.tincanapi.com/activitytype/school-assignment" },
+  { "page", "http://adlnet.gov/expapi/activities/media" },
+  { "resource", "http://adlnet.gov/expapi/activities/media"},
+  { "url", "http://adlnet.gov/expapi/activities/media" },
+  { "forum", "https://w3id.org/xapi/acrossx/activities/online-discussion"},
+  { "hsuforum", "https://w3id.org/xapi/acrossx/activities/online-discussion"},
+  { "lti", "http://adlnet.gov/expapi/activities/media"},
+  { "course", "http://adlnet.gov/expapi/activities/media"},
+  { "assignment", "http://id.tincanapi.com/activitytype/school-assignment" },
+  { "quiz", "http://id.tincanapi.com/activitytype/school-assignment" }
+};
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::StatementFactory::StatementFactory()
 {

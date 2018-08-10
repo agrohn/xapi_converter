@@ -182,12 +182,17 @@ XAPI::ActivityEntry::ToXapiStatement()
       tmp_id = match_details[4];
     } else throw xapi_parsing_error("Cannot make sense of: " + details);
   }
-    
+  /* construct object id */
   auto it = activityTypes.find(activityType);
   if ( it == activityTypes.end()) throw xapi_activity_type_not_supported_error(activityType);
-
   string object_id = it->second + tmp_id;
 
+  /* find proper Xapi activity type */ 
+  string moodleActivity = it->first;
+  auto activityIt = moodleXapiActivity.find(moodleActivity);
+  if ( activityIt == moodleXapiActivity.end()) throw xapi_activity_type_not_supported_error(moodleActivity);
+  
+  string xapiActivity = activityIt->second;
   // assign mapping for later use in grading log parsing.
   //cerr << "appending task '" << context << "' -> " << object_id << "\n";
   TaskNameToTaskID[context] = object_id;
@@ -198,12 +203,14 @@ XAPI::ActivityEntry::ToXapiStatement()
     { "definition",
       {
 	/*{ "description", { "en-GB", ""}},*/
-	{ "type" , "http://id.tincanapi.com/activitytype/school-assignment"},
+	{ "type" , xapiActivity },
 	{ "interactionType", "other" }
       }
     }
   };
-
+  /* http://id.tincanapi.com/activitytype/document */
+  /* http://adlnet.gov/expapi/activities/media */
+  
   object["definition"]["name"] =  {
     {"en-GB", context}
   };   
