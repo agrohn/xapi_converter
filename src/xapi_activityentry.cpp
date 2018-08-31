@@ -3,6 +3,8 @@
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
+#include <string>
+#include <vector>
 typedef boost::tokenizer< boost::escaped_list_separator<char> > Tokenizer;
 ////////////////////////////////////////////////////////////////////////////////
 using namespace boost;
@@ -57,14 +59,9 @@ XAPI::ActivityEntry::ParseTimestamp(const string & strtime)
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
-XAPI::ActivityEntry::Parse(const std::string & line ) 
+XAPI::ActivityEntry::Parse(const std::vector<std::string> & vec ) 
 {
-  vector< string > vec;
-      
-  // break line into comma-separated parts.
-  Tokenizer tok(line);
-  vec.assign(tok.begin(),tok.end());
-      
+	
   ParseTimestamp(vec.at(0));
   username = vec.at(1);
   related_username = vec.at(2);
@@ -82,6 +79,17 @@ XAPI::ActivityEntry::Parse(const std::string & line )
   description = vec.at(6);
   // vec.at(7) = origin
   ip_address = vec.at(8);
+}
+void
+XAPI::ActivityEntry::Parse(const std::string & line ) 
+{
+  vector< string > vec;
+      
+  // break line into comma-separated parts.
+  Tokenizer tok(line);
+  vec.assign(tok.begin(),tok.end());
+      
+  Parse(vec);
 }
     
 std::string

@@ -19,6 +19,7 @@ namespace XAPI
     // parses time structure from string.
     void ParseTimestamp(const std::string & strtime) override;
     void Parse(const std::string & line );
-    std::string ToXapiStatement() override;
+	void Parse(const std::vector<std::string> & lineAsVector );
+	std::string ToXapiStatement() override;
   };
 }
