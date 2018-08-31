@@ -30,7 +30,8 @@ namespace XAPI
   {
     
   public:
-    std::string data;
+	bool dataAsJSON{false};
+	std::string data;
     std::string gradeData;
     std::string learningLockerURL;
     Context context;
@@ -44,12 +45,14 @@ namespace XAPI
     bool ParseArguments( int argc, char **argv );
     void PrintUsage();
     
-    void ParseEventLog();
+    void ParseCSVEventLog();
+	void ParseJSONEventLog();
     void ParseGradeLog();
     void SendStatements();
 
     bool HasGradeData() const;
     bool HasLogData() const;
+    bool IsLogDataJSON() const;
     bool IsDryRun() const;
     bool ShouldPrint() const;
     std::string GetStatementsJSON() const;

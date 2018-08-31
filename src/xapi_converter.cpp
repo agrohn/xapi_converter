@@ -29,7 +29,8 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   // options 
   desc.add_options()
   ("log", po::value<string>(), "<YOUR-LOG-DATA.csv> Actual course log data in CSV format")
-  ("grades", po::value<string>(), "<YOUR-GRADE_DATA.json>  Grade data obtained from moodle")
+  ("logjson", po::value<string>(), "<YOUR-LOG-DATA.json> Actual course log data in JSON format")
+  ("grades", po::value<string>(), "<YOUR-GRADE_DATA.json>  Grade history data obtained from moodle")
   ("courseurl", po::value<string>(), "<course_url> Unique course moodle web address, ends in ?id=xxxx")
   ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
   ("host", po::value<string>(), "<addr> learning locker server hostname or ip. If not defined, performs dry run.")
@@ -49,8 +50,17 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   po::notify(vm);
 
   if ( vm.count("log")  )
+  {
     data = vm["log"].as<string>();
-
+	dataAsJSON = false;
+  }
+  
+  if ( vm.count("logjson" ))
+  {
+	data = vm["logjson"].as<string>();
+	dataAsJSON = true;
+  }
+  
   if ( vm.count("grades") )
     gradeData = vm["grades"].as<string>();
 
@@ -76,7 +86,7 @@ XAPI::Application::PrintUsage()
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
-XAPI::Application::ParseEventLog()
+XAPI::Application::ParseCSVEventLog()
 {
   // try to open activity log
   ifstream activitylog(data.c_str());
@@ -109,6 +119,52 @@ XAPI::Application::ParseEventLog()
     catch ( std::out_of_range & ex )
     {
       cout << "could not parse time\n";
+    }
+    // vector now contains strings from one row, output to cout here
+    //cout << "\n----------------------" << endl;
+  }
+  activitylog.close();
+}
+////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::Application::ParseJSONEventLog()
+{
+  json tmp;
+  ifstream activitylog(data.c_str());
+  if ( !activitylog.is_open())
+  {
+    stringstream ss;
+    ss << "Cannot open file '" << data << "'\n";
+    throw xapi_parsing_error( ss.str());
+  }
+  activitylog >> tmp;
+  json activities = tmp[0];
+  // for each log entry
+  int entries_without_result = 0;
+  for(auto it = activities.begin(); it != activities.end(); ++it)
+  {
+    // each log column is an array elemetn
+    std::vector<string> lineasvec = *it;
+    try
+    {
+      // use overwritten version of Parse
+      statements.push_back(XAPI::StatementFactory::CreateActivity(lineasvec));
+    }
+    catch ( xapi_no_result_error & ex )
+    {
+      entries_without_result++;
+    }
+    catch ( xapi_cached_user_not_found_error & ex )
+    {
+      cerr << ex.what() << "\n";
+    }
+    catch ( xapi_cached_task_not_found_error & ex )
+    {
+      cerr << ex.what() << "\n";
+    }
+    catch ( std::exception & ex )
+    {
+      cerr << ex.what() << "\n";
     }
     // vector now contains strings from one row, output to cout here
     //cout << "\n----------------------" << endl;
@@ -264,6 +320,11 @@ XAPI::Application::HasLogData() const
 {
   return !data.empty();
 }
+bool
+XAPI::Application::IsLogDataJSON() const
+{
+	return dataAsJSON;
+}
 ////////////////////////////////////////////////////////////////////////////////
 bool
 XAPI::Application::IsDryRun() const
@@ -290,7 +351,11 @@ int main( int argc, char **argv)
     cout << "course url" << XAPI::StatementFactory::course_id << "\n";
     cout << "course name" << XAPI::StatementFactory::course_name << "\n";
     
-    if ( app.HasLogData()) app.ParseEventLog();
+    if ( app.HasLogData())
+	{
+	  if ( app.IsLogDataJSON())	app.ParseJSONEventLog();
+	  else						app.ParseCSVEventLog();
+	}
     if ( app.HasGradeData()) app.ParseGradeLog();
     if ( app.ShouldPrint())
     {
