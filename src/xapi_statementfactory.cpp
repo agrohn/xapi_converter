@@ -77,6 +77,18 @@ XAPI::StatementFactory::CreateActivity( const std::string & line )
   e.Parse(line);
   return e.ToXapiStatement();
 }
+////////////////////////////////////////////////////////////////////////////////
+std::string
+XAPI::StatementFactory::CreateActivity( const std::vector<std::string> & lineAsVector )
+{
+  ActivityEntry e;
+  // set from command line
+  e.course_id = course_id;
+  e.course_name = course_name;
+  e.Parse(lineAsVector);
+  return e.ToXapiStatement();
+}
+////////////////////////////////////////////////////////////////////////////////
 std::string
 XAPI::StatementFactory::CreateGradeEntry( const std::vector<std::string> & lineAsVector )
 {
