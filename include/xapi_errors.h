@@ -6,7 +6,7 @@ class xapi_parsing_error : public std::runtime_error {
 private:
   std::string verb;
 public:
-  xapi_parsing_error(const std::string & tmp ) : std::runtime_error( tmp)
+  xapi_parsing_error(const std::string & tmp ) : std::runtime_error( tmp )
   {
     verb = tmp;
   }
@@ -25,7 +25,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 class xapi_activity_type_not_supported_error : public xapi_parsing_error {
 public:
-  xapi_activity_type_not_supported_error(const std::string & tmp ) : xapi_parsing_error( "Activity type'" + tmp + "' not supported"){}
+  xapi_activity_type_not_supported_error(const std::string & tmp ) : xapi_parsing_error( "Activity type '" + tmp + "' not supported"){}
 };
 class xapi_cached_user_not_found_error : public xapi_parsing_error {
 public:
