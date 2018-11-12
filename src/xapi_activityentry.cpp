@@ -180,6 +180,34 @@ XAPI::ActivityEntry::ToXapiStatement()
 	
     } else throw xapi_parsing_error("submitted/attempted: " + details);
   }
+  else if ( verbname == "updated" )
+  {
+    /* special case when assignemnt status is updated by system */
+    regex re_details("the completion state for the course module with id '([[:digit:]]+)' for the user with id '([[:digit:]]+)'");
+    if ( regex_search(details, match_details, re_details) )
+    {
+      activityType = "completed";
+      // course module
+      tmp_id = match_details[1]; 
+      // actual user completing a task
+      userid = match[2];
+      stringstream	homepage;
+      homepage << HOMEPAGE_URL_PREFIX << userid;
+
+      // reconstruct actor json
+      actor = {
+	{"objectType", "Agent"},
+	{"name", username},
+	{"account",{}},
+	
+      };
+      actor["account"] = {
+	{"name", userid }, 
+	{"homePage", homepage.str()}
+      };
+      
+    }
+  }
   else
   {
     // course, page, collaborate, etc.
@@ -192,7 +220,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   }
   /* construct object id */
   auto it = activityTypes.find(activityType);
-  if ( it == activityTypes.end()) throw xapi_activity_type_not_supported_error(activityType);
+  if ( it == activityTypes.end()) throw xapi_activity_type_not_supported_error(verbname+":"+activityType+"' with statement '"+details);
   string object_id = it->second + tmp_id;
 
   /* find proper Xapi activity type */ 
