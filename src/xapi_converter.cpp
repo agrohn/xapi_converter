@@ -10,6 +10,8 @@
 #include <string>
 #include <cctype>
 #include <json.hpp>
+#include <chrono>
+#include <thread>
 
 using json = nlohmann::json;
 using namespace std;
@@ -18,7 +20,8 @@ using namespace std;
 const int NUM_ARGUMENTS_WHEN_SENDING = 4;
 const int NUM_ARGUMENTS_WITHOUT_SENDING = 3;
 namespace po = boost::program_options;
-
+std::map<std::string,int> errorMessages;
+string throbber = "|/-\\|/-\\";
 XAPI::Application::Application() : desc("Command-line tool for sending XAPI statements to learning locker from  Moodle logs\nReleased under GPLv3 - use at your own risk. \n\nPrerequisities:\n\tLearning locker client credentials must be in json format in data/login.json.\n\tSimple object { \"key\": \"\", \"secret\":\"\"}\n\nUsage:\n")
 {
 
@@ -34,7 +37,10 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   ("courseurl", po::value<string>(), "<course_url> Unique course moodle web address, ends in ?id=xxxx")
   ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
   ("host", po::value<string>(), "<addr> learning locker server hostname or ip. If not defined, performs dry run.")
+  ("errorlog", po::value<string>(), "<errorlog> where error information is printed.");
   ("print", "statements json is printed to stdout");
+  throbberState = 0;
+
 }
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::Application::~Application()
@@ -72,7 +78,11 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   // check if learning locker url was specified
   if ( vm.count("host") )
     learningLockerURL = vm["host"].as<string>();
-  print =  vm.count("print") > 0;
+
+  if ( vm.count("errorlog"))
+    errorFile = vm["errorlog"].as<string>();
+  
+  print = vm.count("print") > 0;
   XAPI::StatementFactory::course_id   = context.courseurl;
   XAPI::StatementFactory::course_name = context.coursename;
   
@@ -104,21 +114,25 @@ XAPI::Application::ParseCSVEventLog()
 
   while (getline(activitylog,line))
   {
+    UpdateThrobber("Loading CSV...");
     try
     {
       statements.push_back(	XAPI::StatementFactory::CreateActivity(line) );
     }
     catch ( xapi_activity_type_not_supported_error & ex )
     {
-      cerr << ex.what() << "\n";
+      errorMessages[ex.what()]+=1;
+      //cerr << ex.what() << "\n";
     }
     catch ( xapi_parsing_error & ex )
     {
-      cerr << ex.what() << "\n";
+      errorMessages[ex.what()]+=1;
+      //cerr << ex.what() << "\n";
     }
     catch ( std::out_of_range & ex )
     {
-      cout << "could not parse time\n";
+      errorMessages["could not parse time"]+=1;
+      //cout << "could not parse time\n";
     }
     // vector now contains strings from one row, output to cout here
     //cout << "\n----------------------" << endl;
@@ -143,6 +157,7 @@ XAPI::Application::ParseJSONEventLog()
   int entries_without_result = 0;
   for(auto it = activities.begin(); it != activities.end(); ++it)
   {
+    UpdateThrobber("Loading JSON event log...");
     // each log column is an array elemetn
     std::vector<string> lineasvec = *it;
     try
@@ -156,15 +171,18 @@ XAPI::Application::ParseJSONEventLog()
     }
     catch ( xapi_cached_user_not_found_error & ex )
     {
-      cerr << ex.what() << "\n";
+      errorMessages[ex.what()]++;
+      //cerr << ex.what() << "\n";
     }
     catch ( xapi_cached_task_not_found_error & ex )
     {
-      cerr << ex.what() << "\n";
+      errorMessages[ex.what()]++;
+      //cerr << ex.what() << "\n";
     }
     catch ( std::exception & ex )
     {
-      cerr << ex.what() << "\n";
+      errorMessages[ex.what()]++;
+      //cerr << ex.what() << "\n";
     }
     // vector now contains strings from one row, output to cout here
     //cout << "\n----------------------" << endl;
@@ -193,7 +211,8 @@ XAPI::Application::ParseGradeLog()
   int entries_without_result = 0;
   for(auto it = grading.begin(); it != grading.end(); ++it)
   {
-    // each log column is an array elemetn
+    UpdateThrobber("Parsing grade log...");
+    // each log column is an array element
     std::vector<string> lineasvec = *it;
     try
     {
@@ -206,16 +225,19 @@ XAPI::Application::ParseGradeLog()
     }
     catch ( xapi_cached_user_not_found_error & ex )
     {
-      cerr << ex.what() << "\n";
+      errorMessages[ex.what()]++;
+      //cerr << ex.what() << "\n";
 
     }
     catch ( xapi_cached_task_not_found_error & ex )
     {
-      cerr << ex.what() << "\n";
+      errorMessages[ex.what()]++;
+      //cerr << ex.what() << "\n";
     }
     catch ( std::exception & ex )
     {
-      cerr << ex.what() << "\n";
+      errorMessages[ex.what()]++;
+      //cerr << ex.what() << "\n";
     }
     // vector now contains strings from one row, output to cout here
     //cout << "\n----------------------" << endl;
@@ -224,21 +246,40 @@ XAPI::Application::ParseGradeLog()
 }
 ////////////////////////////////////////////////////////////////////////////////
 std::string
-XAPI::Application::GetStatementsJSON() const
+XAPI::Application::GetStatementsJSON() 
 {
   stringstream ss;
   ss << "[";
   auto last_element = statements.end()-1;
-  for_each(statements.begin(), last_element, [&ss] (auto & s) {
+  for_each(statements.begin(), last_element, [&ss, this] (auto & s) {
       ss << s << ",";
+      this->UpdateThrobber("Converting statements to xAPI...");
     });
   ss << *last_element << "]";
   return ss.str();
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
+XAPI::Application::CreateBatchesToSend()
+{
+  batches.clear();
+  stringstream ss;
+  ss << "[";
+  auto last_element = statements.end()-1;
+
+
+  
+  for_each(statements.begin(), last_element, [&ss,this] (auto & s) {
+      ss << s << ",";
+      this->UpdateThrobber("Sending statements...");
+    });
+  ss << *last_element << "]"; 
+}
+////////////////////////////////////////////////////////////////////////////////
+void
 XAPI::Application::SendStatements()
 {
+  
   ////////////////////////////////////////////////////////////////////////////////
   // send XAPI statements in POST
   if ( learningLockerURL.size() > 0 )
@@ -250,7 +291,7 @@ XAPI::Application::SendStatements()
       ifstream loginDetails("data/login.json");
       json login;
       loginDetails >> login;
-
+      
       
       string url = learningLockerURL+"/data/xAPI/statements";
       cerr << "learninglockerurl" << url << "\n";
@@ -278,8 +319,9 @@ XAPI::Application::SendStatements()
       stringstream ss;
       ss << "[";
       auto last_element = statements.end()-1;
-      for_each(statements.begin(), last_element, [&ss] (auto & s) {
+      for_each(statements.begin(), last_element, [&ss,this] (auto & s) {
 	  ss << s << ",";
+	  this->UpdateThrobber("Sending statements...");
 	});
       ss << *last_element << "]";
       
@@ -291,6 +333,7 @@ XAPI::Application::SendStatements()
 
     }
     catch ( curlpp::LogicError & e ) {
+
       std::cout << e.what() << std::endl;
     }
     catch ( curlpp::RuntimeError & e ) {
@@ -336,23 +379,49 @@ XAPI::Application::ShouldPrint() const
 {
   return print;
 }
+void
+XAPI::Application::UpdateThrobber(const std::string & msg )
+{
+  throbberState++;
+  throbberState %= throbber.length();
+  cerr << '\r';
+  if ( msg.length() > 0 ) cerr << msg << " ";
+  cerr << throbber[throbberState];
+  
+}
+void
+XAPI::Application::LogErrors()
+{
+  if ( errorFile.length() > 0 )
+  {
+    ofstream err(errorFile);
+    err << "Run yielded " << errorMessages.size() << " different errors.\n";
+    if ( err.is_open() == false) throw new std::runtime_error("Cannot open error log file: "+ errorFile );
+    
+    for(auto & s:errorMessages)
+    {
+      err << s.first << " : " << s.second << "\n";
+    }	
+    err.close();
+  }
+}
 ////////////////////////////////////////////////////////////////////////////////
 int main( int argc, char **argv)
 {
     using namespace std;
-
+    
     XAPI::Application app;
     if ( app.ParseArguments(argc, argv) == false )
     {
       app.PrintUsage();
       return 1;
     }
-
+    
     cout << "course url: \"" << XAPI::StatementFactory::course_id << "\"\n";
     cout << "course name: \"" << XAPI::StatementFactory::course_name << "\"\n";
-    
+    app.UpdateThrobber();
     if ( app.HasLogData())
-	{
+    {
 	  if ( app.IsLogDataJSON())	app.ParseJSONEventLog();
 	  else						app.ParseCSVEventLog();
 	}
@@ -365,8 +434,9 @@ int main( int argc, char **argv)
       cout << "alright, dry run - not sending statements.\n";
     else
       app.SendStatements();
-    
 
+    app.LogErrors();
+    
     return 0;
 }
 ////////////////////////////////////////////////////////////////////////////////

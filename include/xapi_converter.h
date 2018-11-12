@@ -28,12 +28,17 @@ namespace XAPI
   };
   class Application
   {
-    
+  private:
+    void CreateBatchesToSend();
+    std::vector<std::string> batches;
   public:
-	bool dataAsJSON{false};
-	std::string data;
+    int throbberState;
+    bool dataAsJSON{false};
+    std::string data;
     std::string gradeData;
     std::string learningLockerURL;
+    std::string errorFile;
+    int  clientBodyMaxSize{20000000}; // 20 MB
     Context context;
     boost::program_options::variables_map vm;
     boost::program_options::options_description desc;
@@ -48,13 +53,15 @@ namespace XAPI
     void ParseCSVEventLog();
 	void ParseJSONEventLog();
     void ParseGradeLog();
-    void SendStatements();
 
+    void SendStatements();
     bool HasGradeData() const;
     bool HasLogData() const;
     bool IsLogDataJSON() const;
     bool IsDryRun() const;
     bool ShouldPrint() const;
-    std::string GetStatementsJSON() const;
+    std::string GetStatementsJSON();
+    void UpdateThrobber(const std::string & msg = "");
+    void LogErrors();
   };
 }
