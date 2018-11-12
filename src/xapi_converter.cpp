@@ -348,8 +348,8 @@ int main( int argc, char **argv)
       return 1;
     }
 
-    cout << "course url" << XAPI::StatementFactory::course_id << "\n";
-    cout << "course name" << XAPI::StatementFactory::course_name << "\n";
+    cout << "course url: \"" << XAPI::StatementFactory::course_id << "\"\n";
+    cout << "course name: \"" << XAPI::StatementFactory::course_name << "\"\n";
     
     if ( app.HasLogData())
 	{
