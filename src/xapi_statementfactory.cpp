@@ -20,8 +20,8 @@ const std::map<std::string, std::string> supportedVerbs = {
     { "ended", ""}, 
     { "graded", ""},
     { "posted", ""},
-    { "searched", ""},
-    { "started", ""},*/
+    { "searched", ""},*/
+    { "started", "http://activitystrea.ms/schema/1.0/start"},
     { "submitted", "http://adlnet.gov/expapi/verbs/answered"},
     // { "attempted", "http://adlnet.gov/expapi/verbs/attempted"},
     { "scored", "http://adlnet.gov/expapi/verbs/scored" },
@@ -29,8 +29,8 @@ const std::map<std::string, std::string> supportedVerbs = {
     { "launched", ""},
     { "subscribed", ""},
     { "unassigned", ""},
-    { "unenrolled", ""},
-    { "updated", ""},*/
+    { "unenrolled", ""},*/
+    { "updated", "http://activitystrea.ms/schema/1.0/update"},
     { "viewed","http://id.tincanapi.com/verb/viewed"}
 };
 
@@ -46,7 +46,8 @@ const std::map<std::string, std::string> activityTypes = {
   { "lti", "https://moodle.karelia.fi/mod/lti/view.php?id=" },
   { "course", "https://moodle.karelia.fi/course/view.php?id="},
   { "assignment", "https://moodle.karelia.fi/mod/assign/view.php?id=" },
-  { "quiz", "https://moodle.karelia.fi/mod/quiz/view.php?id=" }
+  { "quiz", "https://moodle.karelia.fi/mod/quiz/view.php?id=" },
+  { "lesson", "https://moodle.karelia.fi/mod/lesson/view.php?id=" }
 };
 const std::map<std::string, std::string> moodleXapiActivity = {
   { "collaborate", "http://adlnet.gov/expapi/activities/media"},
@@ -59,6 +60,7 @@ const std::map<std::string, std::string> moodleXapiActivity = {
   { "lti", "http://adlnet.gov/expapi/activities/media"},
   { "course", "http://adlnet.gov/expapi/activities/media"},
   { "assignment", "http://id.tincanapi.com/activitytype/school-assignment" },
+  { "lesson", "http://id.tincanapi.com/activitytype/school-assignment" },
   { "quiz", "http://id.tincanapi.com/activitytype/school-assignment" }
 };
 ////////////////////////////////////////////////////////////////////////////////
