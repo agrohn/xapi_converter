@@ -263,17 +263,31 @@ void
 XAPI::Application::CreateBatchesToSend()
 {
   batches.clear();
-  stringstream ss;
-  ss << "[";
+  stringstream batch;
+  batch << "[";
   auto last_element = statements.end()-1;
+	
+	while(statements.empty() == false)
+	{
+		
+		this->UpdateThrobber("Creating batch ..." + batches.size());
+		size_t batchSize = (batch.str() + statements.back()).length();
+		if ( batchSize < clientBodyMaxSize )
+		{
+			batch << statements.back() << ",";
+			statements.pop_back();
+		}
+		else
+		{
+			// append string to batches
+			string tmp = batch.str();
+			tmp[tmp.size()-1] = ']';
+			batches.push_back(tmp);
+			// reset stringstream
+			batch.str("[");
+		}
+	}
 
-
-  
-  for_each(statements.begin(), last_element, [&ss,this] (auto & s) {
-      ss << s << ",";
-      this->UpdateThrobber("Sending statements...");
-    });
-  ss << *last_element << "]"; 
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
@@ -305,9 +319,9 @@ XAPI::Application::SendStatements()
       string key = login["key"];
       string secret = login["secret"];
       {
-	stringstream ss;
-	ss << key << ":" << secret;
-	tmp = ss.str();
+				stringstream ss;
+				ss << key << ":" << secret;
+				tmp = ss.str();
       }
       string auth = "Basic " + base64_encode(reinterpret_cast<const unsigned char *>(tmp.c_str()), tmp.size());
       header.push_back("Authorization: " + auth);
@@ -316,21 +330,15 @@ XAPI::Application::SendStatements()
       header.push_back("Content-Type: application/json; charset=utf-8");
       request.setOpt(new curlpp::options::HttpHeader(header)); 
 
-      stringstream ss;
-      ss << "[";
-      auto last_element = statements.end()-1;
-      for_each(statements.begin(), last_element, [&ss,this] (auto & s) {
-	  ss << s << ",";
-	  this->UpdateThrobber("Sending statements...");
-	});
-      ss << *last_element << "]";
-      
-      request.setOpt(new curlpp::options::PostFields(ss.str()));
-      request.setOpt(new curlpp::options::PostFieldSize(ss.str().size()));
-      cerr << ss.str() << "\n";
-      
-      request.perform();
-
+			for( auto & batch : batches )
+			{
+				UpdateThrobber("Sending batches...");
+				request.setOpt(new curlpp::options::PostFields(batch));
+				request.setOpt(new curlpp::options::PostFieldSize(batch.size()));
+				//cerr << batch << "\n";
+				request.perform();
+			}
+			
     }
     catch ( curlpp::LogicError & e ) {
 
