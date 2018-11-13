@@ -22,6 +22,21 @@ const int NUM_ARGUMENTS_WITHOUT_SENDING = 3;
 namespace po = boost::program_options;
 std::map<std::string,int> errorMessages;
 string throbber = "|/-\\|/-\\";
+namespace XAPI
+{
+	class Progress
+	{
+	private:
+		int current;
+		int total;
+	public:
+		Progress( int c, int t ) current(c), total(t) {}
+		std::string operator() {
+			
+		}
+	};
+}
+
 XAPI::Application::Application() : desc("Command-line tool for sending XAPI statements to learning locker from  Moodle logs\nReleased under GPLv3 - use at your own risk. \n\nPrerequisities:\n\tLearning locker client credentials must be in json format in data/login.json.\n\tSimple object { \"key\": \"\", \"secret\":\"\"}\n\nUsage:\n")
 {
 
@@ -160,7 +175,7 @@ XAPI::Application::ParseJSONEventLog()
   int entries_without_result = 0;
   for(auto it = activities.begin(); it != activities.end(); ++it)
   {
-		int progress=(float)current/(float)numActivities * 100.0f;
+		int progress=(float)current++/(float)numActivities * 100.0f;
 		stringstream ss;
 		ss << "Loading JSON event log [" << progress << "%]...";
 		UpdateThrobber(ss.str());
