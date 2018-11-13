@@ -97,7 +97,34 @@ XAPI::ActivityEntry::ToXapiStatement()
 {
   // Actor is starting point for our parsing. 
   json actor;
-    
+
+  // construct context for activity (course, and additionally others.)
+  json activityContext;
+  json grouping = {
+    { "grouping", {
+	{
+	  { "objectType", "Activity" },
+	  { "id", course_id },
+	  { "definition",
+	    {
+	      { "description",
+		{
+		  { "en-GB", course_name}
+		}
+	      },
+	      { "type", "http://adlnet.gov/expapi/activities/course"}
+	    }
+	  }
+	}
+      }
+    }
+  };
+  
+  activityContext =  {
+    { "contextActivities", grouping }
+  };
+
+  
   regex re("[Tt]he user with id '([[:digit:]]+)'( has)*( had)* (manually )*([[:alnum:]]+)(.*)");
   smatch match;
   //////////
@@ -182,30 +209,50 @@ XAPI::ActivityEntry::ToXapiStatement()
   }
   else if ( verbname == "updated" )
   {
-    /* special case when assignemnt status is updated by system */
-    regex re_details("the completion state for the course module with id '([[:digit:]]+)' for the user with id '([[:digit:]]+)'");
-    if ( regex_search(details, match_details, re_details) )
     {
-      activityType = "completed";
-      // course module
-      tmp_id = match_details[1]; 
-      // actual user completing a task
-      userid = match[2];
-      stringstream	homepage;
-      homepage << HOMEPAGE_URL_PREFIX << userid;
-
-      // reconstruct actor json
-      actor = {
-	{"objectType", "Agent"},
-	{"name", username},
-	{"account",{}},
+      /* special case when assignemnt status is updated by system */
+      regex re_details("the completion state for the course module with id '([[:digit:]]+)' for the user with id '([[:digit:]]+)'");
+      if ( regex_search(details, match_details, re_details) )
+      {
+	activityType = "completed";
+	// course module
+	tmp_id = match_details[1]; 
+	// actual user completing a task
+	userid = match[2];
+	stringstream	homepage;
+	homepage << HOMEPAGE_URL_PREFIX << userid;
 	
-      };
-      actor["account"] = {
-	{"name", userid }, 
-	{"homePage", homepage.str()}
-      };
-      
+	// reconstruct actor json
+	actor = {
+	  {"objectType", "Agent"},
+	  {"name", username},
+	  {"account",{}},
+	  
+	};
+	actor["account"] = {
+	  {"name", userid }, 
+	  {"homePage", homepage.str()}
+	};
+	
+      }
+    }
+    {
+      // updates
+      regex re_details("(section number) '([[::digit::]]+)' for the course with id '([[:digit:]]+)'");
+      if ( regex_search(details, match_details, re_details) )
+      {
+	activityType = "course";
+	tmp_id = match_details[2]; 
+      }
+    }
+    {
+      // updates
+      regex re_details("the '([[::alnum::]])' activity with the course module id '([[:digit:]]+)'.*");
+      if ( regex_search(details, match_details, re_details) )
+      {
+	activityType = "";
+	tmp_id = match_details[2]; 
+      }
     }
   }
   else if ( verbname == "started" ) // quiz attempts are started
@@ -263,31 +310,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   object["definition"]["name"] =  {
     {"en-GB", context}
   };   
-  // constrct context for activity (course etc.)
-  json activityContext;
-  json grouping = {
-    { "grouping", {
-	{
-	  { "objectType", "Activity" },
-	  { "id", course_id },
-	  { "definition",
-	    {
-	      { "description",
-		{
-		  { "en-GB", course_name}
-		}
-	      },
-	      { "type", "http://adlnet.gov/expapi/activities/course"}
-	    }
-	  }
-	}
-      }
-    }
-  };
-  
-  activityContext =  {
-    { "contextActivities", grouping }
-  };
+
   
   // construct full xapi statement
   statement["actor"] = actor;
