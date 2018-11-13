@@ -26,11 +26,20 @@ namespace XAPI
     std::string courseurl;
     std::string coursename;
   };
+  
+  struct Statistics
+  {
+    size_t statementsInTotal;
+    size_t numBatches;
+    std::map<int,size_t> batchAndStatementsCount;
+  };
+  
   class Application
   {
   private:
     void CreateBatchesToSend();
     std::vector<std::string> batches;
+    Statistics stats;
   public:
     int throbberState;
     bool dataAsJSON{false};
@@ -38,7 +47,7 @@ namespace XAPI
     std::string gradeData;
     std::string learningLockerURL;
     std::string errorFile;
-    int  clientBodyMaxSize{20000000}; // 20 MB
+    int  clientBodyMaxSize{10000000}; 
     Context context;
     boost::program_options::variables_map vm;
     boost::program_options::options_description desc;
@@ -63,5 +72,6 @@ namespace XAPI
     std::string GetStatementsJSON();
     void UpdateThrobber(const std::string & msg = "");
     void LogErrors();
+    void LogStats();
   };
 }
