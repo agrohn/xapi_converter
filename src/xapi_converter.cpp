@@ -12,7 +12,7 @@
 #include <json.hpp>
 #include <chrono>
 #include <thread>
-
+#include <curlpp/Infos.hpp>
 using json = nlohmann::json;
 using namespace std;
 //https://nithinkk.wordpress.com/2017/03/16/learning-locker/
@@ -24,17 +24,34 @@ std::map<std::string,int> errorMessages;
 string throbber = "|/-\\|/-\\";
 namespace XAPI
 {
-	class Progress
-	{
-	private:
-		int current;
-		int total;
-	public:
-		Progress( int c, int t ) current(c), total(t) {}
-		std::string operator() {
-			
-		}
-	};
+  class Progress
+  {
+  private:
+    int current;
+    int total;
+  public:
+    Progress( int c, int t ) : current(std::min(c,t)), total(t) {}
+     operator std::string() {
+      stringstream ss;
+
+      ss << current/(total/100);
+      return ss.str();
+    }
+    Progress operator++(int value)
+    {
+      current = std::min(++current,total);
+      return Progress(current, total);
+    }
+    Progress & operator+=(int value)
+    {
+      current = std::min(current+value,total);
+      return *this;
+    }
+    void ResetCurrent()
+    {
+      current = 0;
+    }
+  };
 }
 
 XAPI::Application::Application() : desc("Command-line tool for sending XAPI statements to learning locker from  Moodle logs\nReleased under GPLv3 - use at your own risk. \n\nPrerequisities:\n\tLearning locker client credentials must be in json format in data/login.json.\n\tSimple object { \"key\": \"\", \"secret\":\"\"}\n\nUsage:\n")
@@ -113,6 +130,11 @@ XAPI::Application::PrintUsage()
 void
 XAPI::Application::ParseCSVEventLog()
 {
+  size_t fileSizeInBytes;
+  {
+    ifstream temp(data.c_str(), ios::binary | ios::ate);
+    fileSizeInBytes = temp.tellg();
+  }
   // try to open activity log
   ifstream activitylog(data.c_str());
   if (!activitylog.is_open())
@@ -126,10 +148,11 @@ XAPI::Application::ParseCSVEventLog()
   string line;
   // skip first header line 
   getline(activitylog,line);
-
+  Progress progress(0,fileSizeInBytes);
+  cerr << "\n";
   while (getline(activitylog,line))
   {
-    UpdateThrobber("Loading CSV...");
+    UpdateThrobber("Loading CSV...[" + std::string(progress+=line.length()) + "]...");
     try
     {
       statements.push_back(	XAPI::StatementFactory::CreateActivity(line) );
@@ -169,16 +192,16 @@ XAPI::Application::ParseJSONEventLog()
   activitylog >> tmp;
   json activities = tmp[0];
 
-	size_t numActivities = activities.size();
-	size_t current=0;
+  Progress progress(0,activities.size());
   // for each log entry
   int entries_without_result = 0;
+  cerr << "\n";
   for(auto it = activities.begin(); it != activities.end(); ++it)
   {
-		int progress=(float)current++/(float)numActivities * 100.0f;
-		stringstream ss;
-		ss << "Loading JSON event log [" << progress << "%]...";
-		UpdateThrobber(ss.str());
+
+    stringstream ss;
+    ss << "Loading JSON event log [" << std::string(progress++) << "%]...";
+    UpdateThrobber(ss.str());
     // each log column is an array elemetn
     std::vector<string> lineasvec = *it;
     try
@@ -230,9 +253,11 @@ XAPI::Application::ParseGradeLog()
   json grading = tmp[0];
   // for each log entry
   int entries_without_result = 0;
+  Progress progress(0,grading.size());
+  cerr << "\n";
   for(auto it = grading.begin(); it != grading.end(); ++it)
   {
-    UpdateThrobber("Parsing grade log...");
+    UpdateThrobber("Parsing grade log ["+std::string(progress++)+"%]...");
     // each log column is an array element
     std::vector<string> lineasvec = *it;
     try
@@ -248,7 +273,6 @@ XAPI::Application::ParseGradeLog()
     {
       errorMessages[ex.what()]++;
       //cerr << ex.what() << "\n";
-
     }
     catch ( xapi_cached_task_not_found_error & ex )
     {
@@ -272,11 +296,14 @@ XAPI::Application::GetStatementsJSON()
   stringstream ss;
   ss << "[";
   auto last_element = statements.end()-1;
-  for_each(statements.begin(), last_element, [&ss, this] (auto & s) {
+  Progress p(0,statements.size());
+  cerr << "\n";
+  for_each(statements.begin(), last_element, [&ss, this, &p] (auto & s) {
       ss << s << ",";
-      this->UpdateThrobber("Converting statements to xAPI...");
+      this->UpdateThrobber("Converting statements to xAPI [" + std::string(p++) +"] ...");
     });
   ss << *last_element << "]";
+  this->UpdateThrobber("Converting statements to xAPI [" + std::string(p++) +"] ...");
   return ss.str();
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -287,86 +314,141 @@ XAPI::Application::CreateBatchesToSend()
   stringstream batch;
   batch << "[";
   auto last_element = statements.end()-1;
-	
-	while(statements.empty() == false)
-	{
-		
-		this->UpdateThrobber("Creating batch ..." + batches.size());
-		size_t batchSize = (batch.str() + statements.back()).length();
-		if ( batchSize < clientBodyMaxSize )
-		{
-			batch << statements.back() << ",";
-			statements.pop_back();
-		}
-		else
-		{
-			// append string to batches
-			string tmp = batch.str();
-			tmp[tmp.size()-1] = ']';
-			batches.push_back(tmp);
-			// reset stringstream
-			batch.str("[");
-		}
-	}
+  Progress p(0,clientBodyMaxSize);
+  cerr << "\n";
+  int batchStatementCount = 0;
+  stats.statementsInTotal = statements.size();
+  while(statements.empty() == false)
+  {
+    size_t statementLength = statements.back().length();
+    size_t batchSize = (batch.str().length() + statementLength);
+    stringstream ss;
+    ss << "Creating batch " << batches.size() << " [" << std::string(p+=statementLength)+"%]...";
+    if ( batchSize < clientBodyMaxSize )
+    {
+      batch << statements.back() << ",";
+      statements.pop_back();
+      this->UpdateThrobber(ss.str());
+      batchStatementCount++;
+    }
+    else // batch is full, create new
+    {
+      stringstream ss;
+      
+      this->UpdateThrobber(ss.str());
+      // append string to batches
+      string tmp = batch.str();
+      tmp[tmp.size()-1] = ']';
+
+      // update stats
+      stats.batchAndStatementsCount[batches.size()] = batchStatementCount;
+      batchStatementCount=0;
+      
+      batches.push_back(tmp);
+      // reset stringstream
+      batch.str("");
+      batch << "[";
+      cerr << "\n";
+      p.ResetCurrent();
+
+    }
+  }
+  // update last progress to 100%
+  stringstream ss;
+  ss << "Creating batch " << batches.size() << " [" << std::string(p+=clientBodyMaxSize)+"%]...";
+  this->UpdateThrobber(ss.str());
+
+  // fix last entry
+  string tmp = batch.str();
+  tmp[tmp.size()-1] = ']';
+  batches.push_back(tmp);
+  stats.batchAndStatementsCount[batches.size()] = batchStatementCount;
+  stats.numBatches = batches.size();
 
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
 XAPI::Application::SendStatements()
 {
-	CreateBatchesToSend();
+  CreateBatchesToSend();
   // send XAPI statements in POST
   if ( learningLockerURL.size() > 0 )
   {
-		
-    try {
-      curlpp::Cleanup cleaner;
-      curlpp::Easy request;
-	
-      ifstream loginDetails("data/login.json");
-      json login;
-      loginDetails >> login;
-      
-      
-      string url = learningLockerURL+"/data/xAPI/statements";
-      cerr << "learninglockerurl" << url << "\n";
-      request.setOpt(new curlpp::options::Url(url)); 
-      request.setOpt(new curlpp::options::Verbose(true)); 
-      std::list<std::string> header;
-
-			
-      //https://stackoverflow.com/questions/25852551/how-to-add-basic-authentication-header-to-webrequest#25852562
-      string tmp;
-      string key = login["key"];
-      string secret = login["secret"];
+    ifstream loginDetails("data/login.json");
+    json login;
+    loginDetails >> login;
+    //https://stackoverflow.com/questions/25852551/how-to-add-basic-authentication-header-to-webrequest#25852562
+    string tmp;
+    string key = login["key"];
+    string secret = login["secret"];
+    {
+      stringstream ss;
+      ss << key << ":" << secret;
+      tmp = ss.str();
+    }
+    string auth = "Basic " + base64_encode(reinterpret_cast<const unsigned char *>(tmp.c_str()), tmp.size());
+    int count = 0;
+    for( auto & batch : batches )
+    {
+      // submission might fail, keep trying until you get it done.
+      int responseCode = 0;
+      int attemptNumber = 1;
+      do
       {
-				stringstream ss;
-				ss << key << ":" << secret;
-				tmp = ss.str();
-      }
-      string auth = "Basic " + base64_encode(reinterpret_cast<const unsigned char *>(tmp.c_str()), tmp.size());
-      header.push_back("Authorization: " + auth);
-      
-      header.push_back("X-Experience-API-Version: 1.0.3");
-      header.push_back("Content-Type: application/json; charset=utf-8");
-      request.setOpt(new curlpp::options::HttpHeader(header)); 
 
-			for( auto & batch : batches )
-			{
-				UpdateThrobber("Sending batches...");
-				request.setOpt(new curlpp::options::PostFields(batch));
-				request.setOpt(new curlpp::options::PostFieldSize(batch.size()));
-				//cerr << batch << "\n";
-				request.perform();
-			}
-			
-    }
-    catch ( curlpp::LogicError & e ) {
+	try {
+	  curlpp::Cleanup cleaner;
+	  curlpp::Easy request;
+	
+	  string url = learningLockerURL+"/data/xAPI/statements";
+	  //cerr << "\nLearning locker URL: " << url << "\n";
+	  request.setOpt(new curlpp::options::Url(url)); 
+	  request.setOpt(new curlpp::options::Verbose(false)); 
+	  std::list<std::string> header;
+	  header.push_back("Authorization: " + auth);
+	
+	  header.push_back("X-Experience-API-Version: 1.0.3");
+	  header.push_back("Content-Type: application/json; charset=utf-8");
+	  request.setOpt(new curlpp::options::HttpHeader(header)); 
+	
 
-      std::cout << e.what() << std::endl;
-    }
-    catch ( curlpp::RuntimeError & e ) {
-      std::cout << e.what() << std::endl;
+	  stringstream ss;
+	  ss << "Sending batch " << count;
+	  if ( responseCode == 0) {
+	    cerr << "\n";
+	  } else ss << " (attempt " << attemptNumber << ")";
+	  ss << "...";
+	  
+	  UpdateThrobber(ss.str());
+	
+	  request.setOpt(new curlpp::options::PostFields(batch));
+	  request.setOpt(new curlpp::options::PostFieldSize(batch.length()));
+	  ostringstream response;
+	  request.setOpt( new curlpp::options::WriteStream(&response));
+	  //cerr << "\n" << batch << "\n";
+	  request.perform();
+	  responseCode = curlpp::infos::ResponseCode::get(request);
+
+	  if ( responseCode != 200)
+	  {
+	    ss.str("");
+	    ss << "Sending batch " << count << " failed! Retrying.";
+	    UpdateThrobber(ss.str());
+	    attemptNumber++;
+	    // sleep for some time
+	    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	  }
+
+	}
+	catch ( curlpp::LogicError & e ) {
+	  
+	  std::cout << "Logic error " << e.what() << std::endl;
+	}
+	catch ( curlpp::RuntimeError & e ) {
+	  std::cout << "Runtime error " << e.what() << std::endl;
+	}
+      } while (responseCode != 200);
+      count++;
     }
   }
   /*
@@ -435,6 +517,17 @@ XAPI::Application::LogErrors()
   }
 }
 ////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::Application::LogStats()
+{
+  cerr << "#all statements : " << stats.statementsInTotal << "\n";
+  cerr << "#batches : " << stats.numBatches << "\n";
+  for( auto e : stats.batchAndStatementsCount )
+  {
+    cerr << "Batch " << e.first  << " statements : " << e.second << "\n";
+  }
+}
+////////////////////////////////////////////////////////////////////////////////
 int main( int argc, char **argv)
 {
     using namespace std;
@@ -465,7 +558,7 @@ int main( int argc, char **argv)
       app.SendStatements();
 
     app.LogErrors();
-    
+    app.LogStats();
     return 0;
 }
 ////////////////////////////////////////////////////////////////////////////////
