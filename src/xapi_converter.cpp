@@ -153,11 +153,17 @@ XAPI::Application::ParseJSONEventLog()
   }
   activitylog >> tmp;
   json activities = tmp[0];
+
+	size_t numActivities = activities.size();
+	size_t current=0;
   // for each log entry
   int entries_without_result = 0;
   for(auto it = activities.begin(); it != activities.end(); ++it)
   {
-    UpdateThrobber("Loading JSON event log...");
+		int progress=(float)current/(float)numActivities * 100.0f;
+		stringstream ss;
+		ss << "Loading JSON event log [" << progress << "%]...";
+		UpdateThrobber(ss.str());
     // each log column is an array elemetn
     std::vector<string> lineasvec = *it;
     try
@@ -293,11 +299,11 @@ XAPI::Application::CreateBatchesToSend()
 void
 XAPI::Application::SendStatements()
 {
-  
-  ////////////////////////////////////////////////////////////////////////////////
+	CreateBatchesToSend();
   // send XAPI statements in POST
   if ( learningLockerURL.size() > 0 )
   {
+		
     try {
       curlpp::Cleanup cleaner;
       curlpp::Easy request;
@@ -313,7 +319,7 @@ XAPI::Application::SendStatements()
       request.setOpt(new curlpp::options::Verbose(true)); 
       std::list<std::string> header;
 
-      
+			
       //https://stackoverflow.com/questions/25852551/how-to-add-basic-authentication-header-to-webrequest#25852562
       string tmp;
       string key = login["key"];
