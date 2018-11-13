@@ -208,6 +208,18 @@ XAPI::ActivityEntry::ToXapiStatement()
       
     }
   }
+  else if ( verbname == "started" ) // quiz attempts are started
+  {
+    //"The user with id '14' has started the attempt with id '26531' for the quiz with course module id '110956'."
+    //"The user with id '4121' has started the attempt with id '52548' for the quiz with course module id '111092'."
+    regex re_details("the ([[:alnum:]]+) with id '([[:digit:]]+)' for the quiz with course module id '([[:digit:]]+)'.*");
+    if ( regex_search(details, match_details, re_details) )
+    {
+      activityType = "quiz";
+      tmp_id = match_details[3];
+    }
+    else throw xapi_parsing_error("Cannot make sense of: " + details);
+  }
   else
   {
     // course, page, collaborate, etc.
@@ -217,6 +229,7 @@ XAPI::ActivityEntry::ToXapiStatement()
       activityType = match_details[1];
       tmp_id = match_details[4];
     } else throw xapi_parsing_error("Cannot make sense of: " + details);
+    
   }
   /* construct object id */
   auto it = activityTypes.find(activityType);
