@@ -10,6 +10,7 @@ extern const std::map<std::string, std::string> moodleXapiActivity;
 extern const std::map<std::string, std::string> contextModuleLocaleToActivityType;
 extern std::map<std::string, std::string> TaskNameToTaskID;
 extern std::map<std::string, std::string> UserNameToUserID;
+extern std::map<std::string, std::string> UserIDToUserName;
 ////////////////////////////////////////////////////////////////////////////////
 namespace XAPI
 {

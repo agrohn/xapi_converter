@@ -7,14 +7,14 @@ using namespace XAPI;
 const string VERB_URL_PREFIX = "http://adlnet.gov/expapi/verbs/viewed";
 std::map<std::string, std::string> TaskNameToTaskID = {};
 std::map<std::string, std::string> UserNameToUserID = {};
-
+std::map<std::string, std::string> UserIdToUserName = {};
 std::string XAPI::StatementFactory::course_id = std::string();
 std::string XAPI::StatementFactory::course_name = std::string();
 ////////////////////////////////////////////////////////////////////////////////
 const std::map<std::string, std::string> supportedVerbs = {
-  /*{ "added", ""},
+  /*{ "added", ""},*/
     { "assigned",""},
-    { "created",""},
+    /*    { "created",""},
     { "deleted",""},
     { "enrolled",""},
     { "ended", ""}, 
@@ -26,10 +26,11 @@ const std::map<std::string, std::string> supportedVerbs = {
     // { "attempted", "http://adlnet.gov/expapi/verbs/attempted"},
     { "scored", "http://adlnet.gov/expapi/verbs/scored" },
     /*{ "uploaded", ""},
-    { "launched", ""},
-    { "subscribed", ""},
+      { "launched", ""},*/
+    { "reviewed", "" },
+    /*{ "subscribed", ""},*/
     { "unassigned", ""},
-    { "unenrolled", ""},*/
+    /*{ "unenrolled", ""},*/
     { "updated", "http://activitystrea.ms/schema/1.0/update"},
     { "viewed","http://id.tincanapi.com/verb/viewed"}
 };
@@ -54,7 +55,8 @@ const std::map<std::string, std::string> activityTypes = {
   { "book", "https://moodle.karelia.fi/mod/book/view.php?id="},
   { "chapter", "https://moodle.karelia.fi/mod/book/view.php?id="}, // needs to add also &chapterid=<NUMBER>
   { "discussion", "https://moodle.karelia.fi/mod/forum/discuss.php?d="},
-  { "user", "https://moodle.karelia.fi/user/profile.php?id="} // 
+  { "user", "https://moodle.karelia.fi/user/profile.php?id="},
+  { "post", "https://moodle.karelia.fi/mod/forum/discuss.php?d="} // needs to add #p<POST NUMBER>
 
 };
 // some heuristics to match completion state updates 
@@ -84,7 +86,8 @@ const std::map<std::string, std::string> moodleXapiActivity = {
   { "book", "http://id.tincanapi.com/activitytype/book" },
   { "chapter", "http://id.tincanapi.com/activitytype/chapter" },
   { "discussion", "http://id.tincanapi.com/activitytype/discussion" },
-  { "user", "http://id.tincanapi.com/activitytype/user-profile" }
+  { "user", "http://id.tincanapi.com/activitytype/user-profile" },
+  { "post", "http://id.tincanapi.com/activitytype/forum-reply"}
 };
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::StatementFactory::StatementFactory()
