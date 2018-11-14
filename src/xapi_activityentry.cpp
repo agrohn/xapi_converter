@@ -275,7 +275,7 @@ XAPI::ActivityEntry::ToXapiStatement()
      
     }
     else if ( regex_search(details, match_details,
-			   regex("the '([[:alnum:]]+)' activity with the course module id '([[:digit:]]+)'.*")) )
+			   regex("the '([[:alnum:]]+)' activity with course module id '([[:digit:]]+)'.*")) )
     {
       activityType = match_details[1];
       tmp_id = match_details[2];
