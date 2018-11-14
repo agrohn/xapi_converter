@@ -48,11 +48,26 @@ const std::map<std::string, std::string> activityTypes = {
   { "assignment", "https://moodle.karelia.fi/mod/assign/view.php?id=" },
   { "quiz", "https://moodle.karelia.fi/mod/quiz/view.php?id=" },
   { "lesson", "https://moodle.karelia.fi/mod/lesson/view.php?id=" },
-  { "section", "https://moodle.karelia.fi/course/view.php?id=" }
+  { "section", "https://moodle.karelia.fi/course/view.php?id=" }, // needs to add also #section-<NUMBER>
+  { "hvp", "https://moodle.karelia.fi/mod/hvp/view.php?id=" },
+  { "attempt", "https://moodle.karelia.fi/mod/quiz/review.php?attempt=" },
+  { "book", "https://moodle.karelia.fi/mod/book/view.php?id="},
+  { "chapter", "https://moodle.karelia.fi/mod/book/view.php?id="}, // needs to add also &chapterid=<NUMBER>
+  { "discussion", "https://moodle.karelia.fi/mod/forum/discuss.php?d="},
+  { "user", "https://moodle.karelia.fi/user/profile.php?id="} // 
+
 };
+// some heuristics to match completion state updates 
+const std::map<std::string, std::string> contextModuleLocaleToActivityType = {
+  { "Sivu",       "page" },
+  { "Tentti",      "quiz"},
+  { "H5P",         "hvp" },
+  { "Ohjeteksti", "course"} // Since it is pretty impossible to provide a link to specific label, we do it with course.
+};
+
 const std::map<std::string, std::string> moodleXapiActivity = {
   { "collaborate", "http://adlnet.gov/expapi/activities/media"},
-  { "quiz", "http://id.tincanapi.com/activitytype/school-assignment" },
+  { "quiz", "http://id.tincanapi.com/activitytype/school-assignment" }, // or http://adlnet.gov/expapi/activities/assessment
   { "page", "http://adlnet.gov/expapi/activities/media" },
   { "resource", "http://adlnet.gov/expapi/activities/media"},
   { "url", "http://adlnet.gov/expapi/activities/media" },
@@ -63,7 +78,13 @@ const std::map<std::string, std::string> moodleXapiActivity = {
   { "assignment", "http://id.tincanapi.com/activitytype/school-assignment" },
   { "lesson", "http://id.tincanapi.com/activitytype/school-assignment" },
   { "quiz", "http://id.tincanapi.com/activitytype/school-assignment" },
-  { "section", "http://id.tincanapi.com/activitytype/section" }
+  { "section", "http://id.tincanapi.com/activitytype/section" },
+  { "hvp", "http://adlnet.gov/expapi/activities/media" },
+  { "attempt", "http://id.tincanapi.com/activitytype/solution" },
+  { "book", "http://id.tincanapi.com/activitytype/book" },
+  { "chapter", "http://id.tincanapi.com/activitytype/chapter" },
+  { "discussion", "http://id.tincanapi.com/activitytype/discussion" },
+  { "user", "http://id.tincanapi.com/activitytype/user-profile" }
 };
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::StatementFactory::StatementFactory()
