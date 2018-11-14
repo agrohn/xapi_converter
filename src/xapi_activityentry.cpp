@@ -125,19 +125,27 @@ XAPI::ActivityEntry::ToXapiStatement()
     { "contextActivities", grouping }
   };
 
+ 
   
-  regex re("[Tt]he user with id '([[:digit:]]+)'( has)*( had)* (manually )*([[:alnum:]]+)(.*)");
   smatch match;
-
+  string verbname;
+  
   //////////
   // seek user info
-  if ( regex_search(description, match, re) )
+  if ( regex_search(description, match,
+		    regex("The user with id '[[:digit:]]+' has had their attempt with id '[[:digit:]]+' ([[:alnum:]]+) by the user with id '[[:digit:]]+' for the quiz with course module id '[[:digit:]]+'\\.")) )
+  {
+    // this will be ignored...
+    verbname = match[1]; 
+  }
+  else if ( regex_search(description, match,
+		    regex("[Tt]he user with id '(-*[[:alnum:]]+)'( has)*( had)*( manually)* ([[:alnum:]]+) (.*)")) )
   {
     // actual user completing a task
     userid = match[1];
     stringstream	homepage;
     homepage << HOMEPAGE_URL_PREFIX << userid;
-    
+    verbname = match[5];
     //cerr << "matches:\n";
     /*int c=0;
       for(auto & m : match )
@@ -157,7 +165,7 @@ XAPI::ActivityEntry::ToXapiStatement()
       {"name", userid }, 
       {"homePage", homepage.str()}
     };
-    // Create username to id mapping for grade parsing phase
+
       
   }
   else if ( regex_search(description, match, regex("User ([[:digit:]]+) updated the question ([[:digit:]]+)\\.")))
@@ -173,19 +181,26 @@ XAPI::ActivityEntry::ToXapiStatement()
   if ( username.empty() ) throw xapi_parsing_error("no username found for: " + description);
   //cerr << "setting username-id pair: " << username << " -> " << userid << "\n";
   UserNameToUserID[username] = userid;
-    
+  UserIDToUserName[userid] = username;
+
+
+
   //////////
   // create verb jsonseek verb
   
   // Find verb from description
   json verb;
-  string verbname = match[5];
+
+  
   {
     auto it = supportedVerbs.find(verbname);
     if ( it == supportedVerbs.end())
       throw xapi_verb_not_supported_error(verbname+"' in '"+description);
-      
+
     string verb_xapi_id = it->second;
+    if ( verb_xapi_id.length() == 0 )
+      throw xapi_verb_not_supported_error(verbname+"(ignored)");
+
     verb = {
       {"id", verb_xapi_id },
       {"display",
@@ -223,7 +238,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   }
   else if ( verbname == "updated" )
   {
-    /* special case when assignemnt status is updated by system */
+    /* special case when assignment status is updated by system */
     if ( regex_search(details, match_details,
 		      regex("the completion state for the course module with id '([[:digit:]]+)' for the user with id '([[:digit:]]+)'\\.") ))
     {
@@ -240,11 +255,11 @@ XAPI::ActivityEntry::ToXapiStatement()
 	throw xapi_activity_type_not_supported_error("(Localized: "+context_module_locale_specific+")");
       }
       
-
+      // We also assume that you update completion status only to "completed" one.
 	
     }
     else if ( regex_search(details, match_details,
-			   regex("(section number) '([[::digit::]]+)' for the course with id '([[:digit:]]+)'")) )
+			   regex("(section number) '([[:digit:]]+)' for the course with id '([[:digit:]]+)'")) )
     {
       activityType = "section";
       tmp_id = match_details[2];
@@ -252,7 +267,7 @@ XAPI::ActivityEntry::ToXapiStatement()
       
     }
     else if ( regex_search(details, match_details,
-			   regex("the chapter with id '([[::digit::]]+)' for the book with course module id '([[:digit:]]+)'")) )
+			   regex("the chapter with id '([[:digit:]]+)' for the book with course module id '([[:digit:]]+)'")) )
     {
       activityType = "chapter";
       tmp_id = match_details[2];
@@ -260,7 +275,7 @@ XAPI::ActivityEntry::ToXapiStatement()
      
     }
     else if ( regex_search(details, match_details,
-			   regex("the '([[::alnum::]])' activity with the course module id '([[:digit:]]+)'.*")) )
+			   regex("the '([[:alnum:]]+)' activity with the course module id '([[:digit:]]+)'.*")) )
     {
       activityType = match_details[1];
       tmp_id = match_details[2];
@@ -268,6 +283,13 @@ XAPI::ActivityEntry::ToXapiStatement()
     }
     else if ( regex_search(details, match_details,
 			   regex("the course with id '([[:digit:]]+)'.*")) )
+    {
+      activityType = "course";
+      tmp_id = match_details[1];
+      
+    }
+    else if ( regex_search(details, match_details,
+			   regex("the post with id '([[:digit:]]+)' in the discussion with id '([[:digit:]]+)'.*")) )
     {
       activityType = "course";
       tmp_id = match_details[1];
@@ -282,12 +304,12 @@ XAPI::ActivityEntry::ToXapiStatement()
       throw xapi_activity_ignored_error("updated:grade");
     }
     else if ( regex_search(details, match_details,
-			   regex("the event '([[:alnum:]]+)' with id '([[:digit:]]+)'") ))
+			   regex("the (event|instance of enrolment method) '(.*)' with id '([[:digit:]]+)'") ))
     {
 
       activityType = "event";
       tmp_id = match_details[1];
-      throw xapi_activity_ignored_error("updated:event");
+      throw xapi_activity_ignored_error("updated:event/instance");
     }
   }
   else if ( verbname == "started" ) // quiz attempts are started
@@ -329,12 +351,12 @@ XAPI::ActivityEntry::ToXapiStatement()
 	  }
 	}
       };
-
+      
       // add user to statement related context
       json user = {
 	{ "objectType", "Agent"},
-	{ "name", },
-	{ "account", {} }
+	{ "name", UserIDToUserName[target_userid]}, // todo fix username here as well
+	{ "account",{}},
       };
       user["account"] = {
 	{"name", target_userid }, 
