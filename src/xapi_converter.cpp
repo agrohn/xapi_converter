@@ -216,18 +216,32 @@ XAPI::Application::ParseJSONEventLog()
     catch ( xapi_cached_user_not_found_error & ex )
     {
       errorMessages[ex.what()]++;
-      //cerr << ex.what() << "\n";
     }
     catch ( xapi_cached_task_not_found_error & ex )
     {
       errorMessages[ex.what()]++;
-      //cerr << ex.what() << "\n";
     }
-    catch ( std::exception & ex )
+    catch ( xapi_verb_not_supported_error & ex )
     {
       errorMessages[ex.what()]++;
-      //cerr << ex.what() << "\n";
     }
+    catch ( xapi_activity_ignored_error & ex )
+    {
+      errorMessages[ex.what()]++;
+    }
+    catch ( xapi_activity_type_not_supported_error & ex )
+    {
+      errorMessages[ex.what()]++;
+    }
+    catch (xapi_parsing_error & ex )
+    {
+      errorMessages[ex.what()]++;
+    }
+    //catch ( std::exception & ex )
+    //{
+    // errorMessages[ex.what()]++;
+      //cerr << ex.what() << "\n";
+    //}
     // vector now contains strings from one row, output to cout here
     //cout << "\n----------------------" << endl;
   }
