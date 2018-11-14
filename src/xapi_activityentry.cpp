@@ -225,6 +225,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   string activityType;
   string sectionNumber; // required only for course sections
   string chapterNumber; // required only for book chapters
+	string postNumber;    // required for discussion posts
   if ( verbname == "submitted"  )
   {
     regex re_details("the (submission|attempt) with id '([[:digit:]]+)' for the (assignment|quiz) with course module id '([[:digit:]]+)'.*");
@@ -291,8 +292,9 @@ XAPI::ActivityEntry::ToXapiStatement()
     else if ( regex_search(details, match_details,
 			   regex("the post with id '([[:digit:]]+)' in the discussion with id '([[:digit:]]+)'.*")) )
     {
-      activityType = "course";
-      tmp_id = match_details[1];
+      activityType = "post";
+      tmp_id = match_details[2];
+			postNumber = match_details[1];
       
     }
     else if ( regex_search(details, match_details,
@@ -314,9 +316,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   }
   else if ( verbname == "started" ) // quiz attempts are started
   {
-    //"The user with id '14' has started the attempt with id '26531' for the quiz with course module id '110956'."
-    //"The user with id '4121' has started the attempt with id '52548' for the quiz with course module id '111092'."
-    regex re_details("the ([[:alnum:]]+) with id '([[:digit:]]+)' for the quiz with course module id '([[:digit:]]+)'.*");
+		regex re_details("the ([[:alnum:]]+) with id '([[:digit:]]+)' for the quiz with course module id '([[:digit:]]+)'.*");
     if ( regex_search(details, match_details, re_details) )
     {
       activityType = "quiz";
@@ -324,6 +324,49 @@ XAPI::ActivityEntry::ToXapiStatement()
     }
     else throw xapi_parsing_error("Cannot make sense of: " + details);
   }
+	else if ( verbname == "created" ) 
+  {
+		if ( regex_search(details, match_details,
+											regex("(the|a)* (backup|event|instance of enrolment method).*")))
+		{
+			throw xapi_activity_ignored_error("created:backup/event/instance of enrolment");
+    }
+		else if ( regex_search(details, match_details,
+													 regex("the post with id '([[:digit:]]+)' in the discussion with id '([[:digit:]]+)' in the forum with course module id '([[:digit:]]+)\\.")))
+    {
+      activityType = "post";
+			tmp_id = match_details[2];
+			postNumber = match_details[1];
+    }
+		else if ( regex_search(details, match_details,
+													 regex("the discussion with id '([[:digit:]]+)' in the forum .*")))
+    {
+      activityType = "discussion";
+			tmp_id = match_details[1];
+    }
+		else if ( regex_search(details, match_details,
+													 regex("section number '([[:digit:]]+)' for the course with id '([[:digit:]]+)'")))
+    {
+      activityType = "section";
+			tmp_id = match_details[2];
+			sectionNumber = match_details[1];
+    }
+		else if ( regex_search(details, match_details,
+													 regex("the '([[:alnum:]]+)' activity with course module id '([[:digit:]]+)'\\.")))
+    {
+      activityType = match_details[1];
+			tmp_id = match_details[2];
+    }
+    else throw xapi_parsing_error("Cannot make sense of: " + details);
+  }
+	else if ( verbname == "deleted" )
+	{
+		if (regex_search(details, match_details,
+										 regex("the grade with id .*"))){
+			throw xapi_activity_ignored_error("delete:grade");
+		}
+		else throw xapi_parsing_error("Cannot make sense of: " + details);
+	}
   else
   {
     if ( regex_search(details, match_details,

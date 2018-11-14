@@ -14,9 +14,9 @@ std::string XAPI::StatementFactory::course_name = std::string();
 const std::map<std::string, std::string> supportedVerbs = {
   /*{ "added", ""},*/
     { "assigned",""},
-    /*    { "created",""},
-    { "deleted",""},
-    { "enrolled",""},
+    { "created","http://activitystrea.ms/schema/1.0/create"},
+    { "deleted","http://activitystrea.ms/schema/1.0/delete"},
+    /*{ "enrolled",""},
     { "ended", ""}, 
     { "graded", ""},
     { "posted", ""},
