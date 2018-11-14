@@ -28,6 +28,7 @@ namespace XAPI
     std::string userid;
     std::string related_userid;
     std::string context; // generally the course
+    std::string context_module_locale_specific; ///< prefix for context field, changes with locale settings. 
     std::string component;
     std::string event;
     std::string verb; // xapi-related
