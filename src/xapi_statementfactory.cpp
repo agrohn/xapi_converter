@@ -7,7 +7,7 @@ using namespace XAPI;
 const string VERB_URL_PREFIX = "http://adlnet.gov/expapi/verbs/viewed";
 std::map<std::string, std::string> TaskNameToTaskID = {};
 std::map<std::string, std::string> UserNameToUserID = {};
-std::map<std::string, std::string> UserIdToUserName = {};
+std::map<std::string, std::string> UserIDToUserName = {};
 std::string XAPI::StatementFactory::course_id = std::string();
 std::string XAPI::StatementFactory::course_name = std::string();
 ////////////////////////////////////////////////////////////////////////////////
