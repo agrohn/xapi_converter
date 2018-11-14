@@ -190,39 +190,51 @@ XAPI::Application::ParseJSONEventLog()
     throw xapi_parsing_error( ss.str());
   }
   activitylog >> tmp;
+  activitylog.close();
   json activities = tmp[0];
 
   Progress progress(0,activities.size());
   // for each log entry
   int entries_without_result = 0;
   cerr << "\n";
-  for(auto it = activities.begin(); it != activities.end(); ++it)
-  {
 
+  #pragma omp parallel for
+  for(size_t i=0;i<activities.size(); ++i)
+  {
+    #pragma omp critical
+		{
     stringstream ss;
     ss << "Loading JSON event log [" << std::string(progress++) << "%]...";
     UpdateThrobber(ss.str());
+		}
     // each log column is an array elemetn
-    std::vector<string> lineasvec = *it;
+    std::vector<string> lineasvec = activities[i];
     try
     {
       // use overwritten version of Parse
-      statements.push_back(XAPI::StatementFactory::CreateActivity(lineasvec));
+			
+			string tmp = XAPI::StatementFactory::CreateActivity(lineasvec);
+			#pragma omp critical
+			statements.push_back(tmp);
     }
     catch ( xapi_no_result_error & ex )
     {
+      #pragma omp critical
       entries_without_result++;
     }
     catch ( xapi_cached_user_not_found_error & ex )
     {
+      #pragma omp critical
       errorMessages[ex.what()]++;
     }
     catch ( xapi_cached_task_not_found_error & ex )
     {
+      #pragma omp critical
       errorMessages[ex.what()]++;
     }
     catch ( xapi_verb_not_supported_error & ex )
     {
+			#pragma omp critical
       errorMessages[ex.what()]++;
     }
     catch ( xapi_activity_ignored_error & ex )
@@ -231,10 +243,12 @@ XAPI::Application::ParseJSONEventLog()
     }
     catch ( xapi_activity_type_not_supported_error & ex )
     {
+      #pragma omp critical
       errorMessages[ex.what()]++;
     }
     catch (xapi_parsing_error & ex )
     {
+      #pragma omp critical
       errorMessages[ex.what()]++;
     }
     //catch ( std::exception & ex )
@@ -245,7 +259,7 @@ XAPI::Application::ParseJSONEventLog()
     // vector now contains strings from one row, output to cout here
     //cout << "\n----------------------" << endl;
   }
-  activitylog.close();
+
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
@@ -269,6 +283,7 @@ XAPI::Application::ParseGradeLog()
   int entries_without_result = 0;
   Progress progress(0,grading.size());
   cerr << "\n";
+
   for(auto it = grading.begin(); it != grading.end(); ++it)
   {
     UpdateThrobber("Parsing grade log ["+std::string(progress++)+"%]...");
