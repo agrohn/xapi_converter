@@ -39,3 +39,7 @@ class xapi_no_result_error : public xapi_parsing_error {
 public:
   xapi_no_result_error() : xapi_parsing_error( "grade log entry did not contain a result."){}
 };
+class xapi_activity_ignored_error : public xapi_parsing_error {
+public:
+  xapi_activity_ignored_error(const std::string & tmp ) : xapi_parsing_error( "Activity '" + tmp + "' ignored."){}
+};
