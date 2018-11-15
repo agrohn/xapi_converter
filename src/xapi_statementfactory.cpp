@@ -17,22 +17,27 @@ const std::map<std::string, std::string> supportedVerbs = {
   { "created","http://activitystrea.ms/schema/1.0/create"},
   { "deleted","http://activitystrea.ms/schema/1.0/delete"},
   { "enrolled","http://activitystrea.ms/schema/1.0/join"},
-  /*{ "ended", ""}, 
-    { "graded", ""},*/
+  /*{ "ended", ""}, */
+  { "exported", ""}, // ignore grade exports
+  /* { "graded", ""},*/
   { "posted", "http://id.tincanapi.com/verb/replied"},
-  /* { "searched", ""},*/
+  { "searched", "http://activitystrea.ms/schema/1.0/search"},
   { "started", "http://activitystrea.ms/schema/1.0/start"},
   { "submitted", "http://adlnet.gov/expapi/verbs/answered"},
   // { "attempted", "http://adlnet.gov/expapi/verbs/attempted"},
   { "scored", "http://adlnet.gov/expapi/verbs/scored" },
   /*{ "uploaded", ""},
     { "launched", ""},*/
-  { "reviewed", "" },
-  /*{ "subscribed", ""},*/
+  { "reviewed", "http://id.tincanapi.com/verb/reviewed" },
+  { "subscribed", "http://activitystrea.ms/schema/1.0/follow"},
   { "unassigned", ""}, // ignore role unassignments
   { "unenrolled", "http://activitystrea.ms/schema/1.0/remove"},
   { "updated", "http://activitystrea.ms/schema/1.0/update"},
-  { "viewed","http://id.tincanapi.com/verb/viewed"}
+  { "viewed","http://id.tincanapi.com/verb/viewed"},
+  { "previewed", ""}, // ignore previews
+  { "printed", ""}, // ignore book prints
+  { "restored", ""}, // ignore course restores to a new course
+  {}
 };
 
 // supported activity target types
@@ -47,7 +52,6 @@ const std::map<std::string, std::string> activityTypes = {
   { "lti", "https://moodle.karelia.fi/mod/lti/view.php?id=" },
   { "course", "https://moodle.karelia.fi/course/view.php?id="},
   { "assignment", "https://moodle.karelia.fi/mod/assign/view.php?id=" },
-  { "quiz", "https://moodle.karelia.fi/mod/quiz/view.php?id=" },
   { "lesson", "https://moodle.karelia.fi/mod/lesson/view.php?id=" },
   { "section", "https://moodle.karelia.fi/course/view.php?id=" }, // needs to add also #section-<NUMBER>
   { "hvp", "https://moodle.karelia.fi/mod/hvp/view.php?id=" },
