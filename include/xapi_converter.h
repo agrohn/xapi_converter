@@ -29,8 +29,8 @@ namespace XAPI
   
   struct Statistics
   {
-    size_t statementsInTotal;
-    size_t numBatches;
+    size_t statementsInTotal{0};
+    size_t numBatches{0};
     std::map<int,size_t> batchAndStatementsCount;
   };
   

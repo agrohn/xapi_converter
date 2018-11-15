@@ -549,6 +549,7 @@ XAPI::Application::LogErrors()
 void
 XAPI::Application::LogStats()
 {
+  stats.statementsInTotal = statements.size();
   cerr << "#all statements : " << stats.statementsInTotal << "\n";
   cerr << "#batches : " << stats.numBatches << "\n";
   for( auto e : stats.batchAndStatementsCount )
