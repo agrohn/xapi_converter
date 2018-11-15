@@ -47,7 +47,7 @@ namespace XAPI
     std::string gradeData;
     std::string learningLockerURL;
     std::string errorFile;
-    int  clientBodyMaxSize{10000000}; 
+    int  clientBodyMaxSize{20000000}; 
     Context context;
     boost::program_options::variables_map vm;
     boost::program_options::options_description desc;
