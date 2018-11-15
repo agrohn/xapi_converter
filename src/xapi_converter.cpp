@@ -466,6 +466,9 @@ XAPI::Application::SendStatements()
 	    attemptNumber++;
 	    // sleep for some time
 	    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	    ofstream file("curl.log", std::fstream::app);
+	    file << response.str() << "\n";
+	    file.close();
 	  }
 
 	}
