@@ -18,9 +18,9 @@ const std::map<std::string, std::string> supportedVerbs = {
   { "deleted","http://activitystrea.ms/schema/1.0/delete"},
   { "enrolled","http://activitystrea.ms/schema/1.0/join"},
   /*{ "ended", ""}, 
-    { "graded", ""},
-    { "posted", ""},
-    { "searched", ""},*/
+    { "graded", ""},*/
+  { "posted", "http://id.tincanapi.com/verb/replied"},
+  /* { "searched", ""},*/
   { "started", "http://activitystrea.ms/schema/1.0/start"},
   { "submitted", "http://adlnet.gov/expapi/verbs/answered"},
   // { "attempted", "http://adlnet.gov/expapi/verbs/attempted"},
@@ -56,8 +56,8 @@ const std::map<std::string, std::string> activityTypes = {
   { "chapter", "https://moodle.karelia.fi/mod/book/view.php?id="}, // needs to add also &chapterid=<NUMBER>
   { "discussion", "https://moodle.karelia.fi/mod/forum/discuss.php?d="},
   { "user", "https://moodle.karelia.fi/user/profile.php?id="},
-  { "post", "https://moodle.karelia.fi/mod/forum/discuss.php?d="} // needs to add #p<POST NUMBER>
-
+  { "post", "https://moodle.karelia.fi/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
+  { "reply", "https://moodle.karelia.fi/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
 };
 // some heuristics to match completion state updates 
 const std::map<std::string, std::string> contextModuleLocaleToActivityType = {

@@ -461,6 +461,13 @@ XAPI::ActivityEntry::ToXapiStatement()
 	
       }
     }
+    else if ( regex_search(details, match_details,
+			   regex("content in the forum post with with id '([[:digit:]]+)' in the discussion '([[:digit:]]+)' located in the forum with course module id '([[:digit:]]+)\\.")))
+    {
+      activityType = "reply"; 
+      tmp_id = match_details[2];
+      postNumber = match_details[1];
+    }
     else if ( regex_search(details, match_details,     // course, page, collaborate, etc.    
 			   regex("the '*([[:alnum:]]+)'*( activity)* with (course module id|id) '([[:digit:]]+)'.*")) )
     {
@@ -486,6 +493,12 @@ XAPI::ActivityEntry::ToXapiStatement()
   {
     stringstream ss;
     ss << object_id << "&chapterid=" << chapterNumber;
+    object_id = ss.str();
+  }
+  else if ( it->first == "post" || it->first == "reply" )
+  {
+    stringstream ss;
+    ss << object_id << "#p=" << postNumber;
     object_id = ss.str();
   }
   /* find proper Xapi activity type */ 
