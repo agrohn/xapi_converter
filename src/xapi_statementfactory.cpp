@@ -13,26 +13,26 @@ std::string XAPI::StatementFactory::course_name = std::string();
 ////////////////////////////////////////////////////////////////////////////////
 const std::map<std::string, std::string> supportedVerbs = {
   /*{ "added", ""},*/
-    { "assigned",""},
-    { "created","http://activitystrea.ms/schema/1.0/create"},
-    { "deleted","http://activitystrea.ms/schema/1.0/delete"},
-    /*{ "enrolled",""},
-    { "ended", ""}, 
+  { "assigned",""}, // ignore role assignments
+  { "created","http://activitystrea.ms/schema/1.0/create"},
+  { "deleted","http://activitystrea.ms/schema/1.0/delete"},
+  { "enrolled","http://activitystrea.ms/schema/1.0/join"},
+  /*{ "ended", ""}, 
     { "graded", ""},
     { "posted", ""},
     { "searched", ""},*/
-    { "started", "http://activitystrea.ms/schema/1.0/start"},
-    { "submitted", "http://adlnet.gov/expapi/verbs/answered"},
-    // { "attempted", "http://adlnet.gov/expapi/verbs/attempted"},
-    { "scored", "http://adlnet.gov/expapi/verbs/scored" },
-    /*{ "uploaded", ""},
-      { "launched", ""},*/
-    { "reviewed", "" },
-    /*{ "subscribed", ""},*/
-    { "unassigned", ""},
-    /*{ "unenrolled", ""},*/
-    { "updated", "http://activitystrea.ms/schema/1.0/update"},
-    { "viewed","http://id.tincanapi.com/verb/viewed"}
+  { "started", "http://activitystrea.ms/schema/1.0/start"},
+  { "submitted", "http://adlnet.gov/expapi/verbs/answered"},
+  // { "attempted", "http://adlnet.gov/expapi/verbs/attempted"},
+  { "scored", "http://adlnet.gov/expapi/verbs/scored" },
+  /*{ "uploaded", ""},
+    { "launched", ""},*/
+  { "reviewed", "" },
+  /*{ "subscribed", ""},*/
+  { "unassigned", ""}, // ignore role unassignments
+  { "unenrolled", "http://activitystrea.ms/schema/1.0/remove"},
+  { "updated", "http://activitystrea.ms/schema/1.0/update"},
+  { "viewed","http://id.tincanapi.com/verb/viewed"}
 };
 
 // supported activity target types

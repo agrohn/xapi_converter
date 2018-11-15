@@ -433,6 +433,34 @@ XAPI::ActivityEntry::ToXapiStatement()
     {
       throw xapi_activity_ignored_error("viewed:available badge list");
     }
+    else if ( regex_search(details, match_details,
+			   regex("the user with id '([[:digit:]]+)' using enrolment method '(self|manual)' in the course with id '([[:digit:]]+)'\\.")))
+    {
+      //enrolled the user with id '356' using the enrolment method 'manual' in the course with id '2070'.
+      //enrolled the user with id '2199' using the enrolment method 'self' in the course with id '2070'.
+      activityType = "course";
+      tmp_id = match_details[1];
+      stringstream related_user_homepage;
+      related_user_homepage << HOMEPAGE_URL_PREFIX << tmp_id;
+      if ( tmp_id != userid )
+      {
+	// actor was the (un)enroller, actual user that was (un)enrolled needs to be set as actor.
+	json related_user = actor;
+	actor = {
+	  { "objectType", "Agent"},
+	  { "name", UserIDToUserName[tmp_id]}, // todo fix username here as well
+	  { "account",{}},
+	};
+	actor["account"] = {
+	  {"name", userid }, 
+	  {"homePage", related_user_homepage.str()}
+	};
+	
+	// add (un)enroller to related context
+	activityContext["contextActivities"]["grouping"].push_back(related_user);
+	
+      }
+    }
     else if ( regex_search(details, match_details,     // course, page, collaborate, etc.    
 			   regex("the '*([[:alnum:]]+)'*( activity)* with (course module id|id) '([[:digit:]]+)'.*")) )
     {
