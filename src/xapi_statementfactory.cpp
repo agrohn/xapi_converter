@@ -23,7 +23,7 @@ const std::map<std::string, std::string> supportedVerbs = {
   { "posted", "http://id.tincanapi.com/verb/replied"},
   { "searched", "http://activitystrea.ms/schema/1.0/search"},
   { "started", "http://activitystrea.ms/schema/1.0/start"},
-  { "submitted", "http://adlnet.gov/expapi/verbs/answered"},
+  { "submitted", "http://activitystrea.ms/schema/1.0/submit"},
   // { "attempted", "http://adlnet.gov/expapi/verbs/attempted"},
   { "scored", "http://adlnet.gov/expapi/verbs/scored" },
   /*{ "uploaded", ""},
