@@ -9,13 +9,13 @@ namespace XAPI
   public:
     
     void ParseTimestamp(const std::string & strtime) override;
-    void Parse( const std::vector<std::string> & vec ) ;
+    void Parse( const std::vector<std::string> & vec, bool anonymize = false ) ;
     
     bool HasGradeScore();
     float GetGradeScore();
 
     std::string GetTaskName();
-    std::string ToXapiStatement() override;
+    std::string ToXapiStatement(bool anonymize = false) override;
   };
 }
 ////////////////////////////////////////////////////////////////////////////////

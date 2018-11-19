@@ -45,7 +45,7 @@ namespace XAPI
     /// Returns string as yyyy-mm-ddThh:mmZ
     std::string GetTimestamp() const;
 
-    virtual std::string ToXapiStatement() = 0;
+    virtual std::string ToXapiStatement(bool anonymize = false ) = 0;
 
   };
 }

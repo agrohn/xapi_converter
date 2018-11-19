@@ -1,4 +1,5 @@
 #include <xapi_entry.h>
+#include <xapi_anonymizer.h>
 #include <iomanip>
 #include <ctime>
 #include <regex>
@@ -11,6 +12,7 @@ extern const std::map<std::string, std::string> contextModuleLocaleToActivityTyp
 extern std::map<std::string, std::string> TaskNameToTaskID;
 extern std::map<std::string, std::string> UserNameToUserID;
 extern std::map<std::string, std::string> UserIDToUserName;
+extern XAPI::Anonymizer  anonymized_usernames;
 ////////////////////////////////////////////////////////////////////////////////
 namespace XAPI
 {
@@ -20,8 +22,8 @@ namespace XAPI
 
     // parses time structure from string.
     void ParseTimestamp(const std::string & strtime) override;
-    void Parse(const std::string & line );
-	void Parse(const std::vector<std::string> & lineAsVector );
-	std::string ToXapiStatement() override;
+    void Parse(const std::string & line, bool anonymize = false  );
+    void Parse(const std::vector<std::string> & lineAsVector, bool anonymize = false );
+    std::string ToXapiStatement(bool anonymize = false) override;
   };
 }

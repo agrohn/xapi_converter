@@ -1,6 +1,7 @@
 #include <xapi_statementfactory.h>
 #include <xapi_activityentry.h>
 #include <xapi_grade.h>
+#include <cstdlib>
 using namespace std;
 using namespace XAPI;
 ////////////////////////////////////////////////////////////////////////////////
@@ -10,6 +11,8 @@ std::map<std::string, std::string> UserNameToUserID = {};
 std::map<std::string, std::string> UserIDToUserName = {};
 std::string XAPI::StatementFactory::course_id = std::string();
 std::string XAPI::StatementFactory::course_name = std::string();
+////////////////////////////////////////////////////////////////////////////////
+XAPI::Anonymizer  anonymized_usernames; 
 ////////////////////////////////////////////////////////////////////////////////
 const std::map<std::string, std::string> supportedVerbs = {
   /*{ "added", ""},*/
@@ -100,35 +103,35 @@ XAPI::StatementFactory::StatementFactory()
 }
 ////////////////////////////////////////////////////////////////////////////////
 std::string
-XAPI::StatementFactory::CreateActivity( const std::string & line )
+XAPI::StatementFactory::CreateActivity( const std::string & line, bool anonymize )
 {
   ActivityEntry e;
   // set from command line
   e.course_id = course_id;
   e.course_name = course_name;
-  e.Parse(line);
-  return e.ToXapiStatement();
+  e.Parse(line,anonymize);
+  return e.ToXapiStatement(anonymize);
 }
 ////////////////////////////////////////////////////////////////////////////////
 std::string
-XAPI::StatementFactory::CreateActivity( const std::vector<std::string> & lineAsVector )
+XAPI::StatementFactory::CreateActivity( const std::vector<std::string> & lineAsVector, bool anonymize )
 {
   ActivityEntry e;
   // set from command line
   e.course_id = course_id;
   e.course_name = course_name;
-  e.Parse(lineAsVector);
-  return e.ToXapiStatement();
+  e.Parse(lineAsVector,anonymize);
+  return e.ToXapiStatement(anonymize);
 }
 ////////////////////////////////////////////////////////////////////////////////
 std::string
-XAPI::StatementFactory::CreateGradeEntry( const std::vector<std::string> & lineAsVector )
+XAPI::StatementFactory::CreateGradeEntry( const std::vector<std::string> & lineAsVector, bool anonymize )
 {
   GradeEntry e;
   // set from command line
   e.course_id = course_id;
   e.course_name = course_name;
-  e.Parse(lineAsVector);
-  return e.ToXapiStatement();
+  e.Parse(lineAsVector,anonymize);
+  return e.ToXapiStatement(anonymize);
 }
 ////////////////////////////////////////////////////////////////////////////////

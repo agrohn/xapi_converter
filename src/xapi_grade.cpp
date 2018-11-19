@@ -1,12 +1,14 @@
 #include <xapi_grade.h>
 #include <algorithm>
 #include <xapi_errors.h>
+#include <xapi_anonymizer.h>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 ////////////////////////////////////////////////////////////////////////////////
 using namespace boost;
 using namespace std;
 using json = nlohmann::json;
+extern XAPI::Anonymizer anonymized_usernames;
 ////////////////////////////////////////////////////////////////////////////////
 const std::map<std::string,int> monthValues= {
   { "tammikuu", 1},
@@ -69,14 +71,14 @@ XAPI::GradeEntry::ParseTimestamp(const string & strtime)
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
-XAPI::GradeEntry::Parse( const std::vector<std::string> & vec ) 
+XAPI::GradeEntry::Parse( const std::vector<std::string> & vec, bool anonymize ) 
 {
   // break line into comma-separated parts.
   ParseTimestamp(vec.at(0));
    
-  username = vec.at(1); // gradee
+  username = anonymize ? anonymized_usernames[vec.at(1)] : vec.at(1); // gradee
 
-  related_username = vec.at(6); // grader
+  related_username = anonymize ? anonymized_usernames[vec.at(6)] : vec.at(6); // grader
     
   context = vec.at(3); // task name
     
@@ -116,7 +118,7 @@ XAPI::GradeEntry::GetTaskName()
 }
 ////////////////////////////////////////////////////////////////////////////////
 std::string
-XAPI::GradeEntry::ToXapiStatement()
+XAPI::GradeEntry::ToXapiStatement(bool anonymize)
 {
   json statement;
   

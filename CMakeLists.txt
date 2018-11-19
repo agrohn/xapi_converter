@@ -25,6 +25,7 @@ set(HEADERS
   include/xapi_errors.h
   include/xapi_statementfactory.h
   include/xapi_converter.h
+  include/xapi_anonymizer.h
   )
 add_executable( xapi_converter ${HEADERS} ${SOURCES} )
 # Copy data to build

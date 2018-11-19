@@ -47,13 +47,14 @@ namespace XAPI
     std::string gradeData;
     std::string learningLockerURL;
     std::string errorFile;
+
     int  clientBodyMaxSize{20000000}; 
     Context context;
     boost::program_options::variables_map vm;
     boost::program_options::options_description desc;
     std::vector<std::string> statements;
     bool print{false};
-    
+    bool anonymize{false};
     Application();
     virtual ~Application();
     bool ParseArguments( int argc, char **argv );

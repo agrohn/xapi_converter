@@ -69,7 +69,8 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   ("courseurl", po::value<string>(), "<course_url> Unique course moodle web address, ends in ?id=xxxx")
   ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
   ("host", po::value<string>(), "<addr> learning locker server hostname or ip. If not defined, performs dry run.")
-  ("errorlog", po::value<string>(), "<errorlog> where error information is printed.");
+  ("errorlog", po::value<string>(), "<errorlog> where error information is printed.")
+  ("anonymize", "Should user data be anonymized.")
   ("print", "statements json is printed to stdout");
   throbberState = 0;
 
@@ -115,6 +116,7 @@ XAPI::Application::ParseArguments( int argc, char **argv )
     errorFile = vm["errorlog"].as<string>();
   
   print = vm.count("print") > 0;
+  anonymize = vm.count("anonymize") > 0;
   XAPI::StatementFactory::course_id   = context.courseurl;
   XAPI::StatementFactory::course_name = context.coursename;
   
@@ -213,7 +215,7 @@ XAPI::Application::ParseJSONEventLog()
     {
       // use overwritten version of Parse
 			
-			string tmp = XAPI::StatementFactory::CreateActivity(lineasvec);
+      string tmp = XAPI::StatementFactory::CreateActivity(lineasvec,anonymize);
 			#pragma omp critical
 			statements.push_back(tmp);
     }
