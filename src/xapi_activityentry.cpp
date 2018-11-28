@@ -93,7 +93,19 @@ XAPI::ActivityEntry::Parse(const std::string & line )
       
   Parse(vec);
 }
-    
+void
+XAPI::ActivityEntry::UpdateUserData()
+{
+  smatch match;
+  if ( username.empty() ) throw xapi_parsing_error("no username found for: " + description);
+  if ( regex_search(description, match, regex("[Tt]he user with id '([[:digit:]]+)' .*")))
+  {
+    string userid = anonymizer(match[1]);
+    UserNameToUserID[anonymizer(username)] = userid;
+    UserIDToUserName[userid] = anonymizer(username);
+  }
+}
+
 std::string
 XAPI::ActivityEntry::ToXapiStatement()
 {
@@ -135,7 +147,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   //////////
   // This entry has differs from general form; we customize it here so we can reuse existing code.
   if ( regex_search(description, match,
-		    regex("[Tt]he user with id '([[:digit:]]+)' has had their attempt with id '([[:digit:]]+)' ([[:alnum:]]+) by the user with id '([[:digit:]])+' for the quiz with course module id '([[:digit:]]+)'\\.")) )
+                    regex("[Tt]he user with id '([[:digit:]]+)' has had their attempt with id '([[:digit:]]+)' ([[:alnum:]]+) by the user with id '([[:digit:]])+' for the quiz with course module id '([[:digit:]]+)'\\.")) )
   {
     verbname = match[3];
     userid = anonymizer(match[3]);

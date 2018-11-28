@@ -25,5 +25,7 @@ namespace XAPI
     void Parse(const std::string & line );
     void Parse(const std::vector<std::string> & lineAsVector );
     std::string ToXapiStatement() override;
+    // updates user name and id mappings so they are found in actual run.
+    void UpdateUserData();
   };
 }

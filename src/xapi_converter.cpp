@@ -202,17 +202,34 @@ XAPI::Application::ParseJSONEventLog()
   // for each log entry
   int entries_without_result = 0;
   cerr << "\n";
-
   #pragma omp parallel for
   for(size_t i=0;i<activities.size(); ++i)
   {
     #pragma omp critical
 		{
-    stringstream ss;
-    ss << "Loading JSON event log [" << std::string(progress++) << "%]...";
-    UpdateThrobber(ss.str());
+      stringstream ss;
+      ss << "Caching user data [" << std::string(progress++) << "%]...";
+      UpdateThrobber(ss.str());
 		}
-    // each log column is an array elemetn
+    try {
+      std::vector<string> lineasvec = activities[i];
+      XAPI::StatementFactory::CacheUser(lineasvec);
+    } catch ( regex_error & ex )
+    {
+      cerr << ex.what() << "\n";
+    }
+  }
+  progress.ResetCurrent();
+  #pragma omp parallel for
+  for(size_t i=0;i<activities.size(); ++i)
+  {
+    #pragma omp critical
+		{
+      stringstream ss;
+      ss << "Loading JSON event log [" << std::string(progress++) << "%]...";
+      UpdateThrobber(ss.str());
+		}
+    // each log column is an array element
     std::vector<string> lineasvec = activities[i];
     try
     {

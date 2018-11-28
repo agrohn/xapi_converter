@@ -102,6 +102,27 @@ XAPI::StatementFactory::StatementFactory()
   
 }
 ////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::StatementFactory::CacheUser( const std::string & line )
+{
+  ActivityEntry e;
+  e.course_id = course_id;
+  e.course_name = course_name;
+  e.Parse(line);
+  e.UpdateUserData();
+}
+////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::StatementFactory::CacheUser( const std::vector<std::string> & lineAsVector )
+{
+  ActivityEntry e;
+  // set from command line
+  e.course_id = course_id;
+  e.course_name = course_name;
+  e.Parse(lineAsVector);
+  e.UpdateUserData();
+}
+////////////////////////////////////////////////////////////////////////////////
 std::string
 XAPI::StatementFactory::CreateActivity( const std::string & line )
 {
