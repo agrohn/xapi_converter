@@ -59,13 +59,13 @@ XAPI::ActivityEntry::ParseTimestamp(const string & strtime)
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
-XAPI::ActivityEntry::Parse(const std::vector<std::string> & vec, bool anonymize ) 
+XAPI::ActivityEntry::Parse(const std::vector<std::string> & vec ) 
 {
 	
   ParseTimestamp(vec.at(0));
   
-  username =  anonymize ? anonymized_usernames[vec.at(1)] : vec.at(1);
-  related_username =   anonymize ? (vec.at(2).length() > 0 ? anonymized_usernames[vec.at(2)] : "") : vec.at(2);
+  username =  anonymizer(vec.at(1));
+  related_username =   anonymizer(vec.at(2));
   
   context = vec.at(3);
   // remove existing type-prefixing since it messes up name caching
@@ -83,7 +83,7 @@ XAPI::ActivityEntry::Parse(const std::vector<std::string> & vec, bool anonymize 
   ip_address = vec.at(8);
 }
 void
-XAPI::ActivityEntry::Parse(const std::string & line, bool anonymize ) 
+XAPI::ActivityEntry::Parse(const std::string & line ) 
 {
   vector< string > vec;
       
@@ -91,11 +91,11 @@ XAPI::ActivityEntry::Parse(const std::string & line, bool anonymize )
   Tokenizer tok(line);
   vec.assign(tok.begin(),tok.end());
       
-  Parse(vec, anonymize);
+  Parse(vec);
 }
     
 std::string
-XAPI::ActivityEntry::ToXapiStatement(bool anonymize)
+XAPI::ActivityEntry::ToXapiStatement()
 {
   // Actor is starting point for our parsing. 
   json actor;
@@ -138,7 +138,7 @@ XAPI::ActivityEntry::ToXapiStatement(bool anonymize)
 		    regex("[Tt]he user with id '([[:digit:]]+)' has had their attempt with id '([[:digit:]]+)' ([[:alnum:]]+) by the user with id '([[:digit:]])+' for the quiz with course module id '([[:digit:]]+)'\\.")) )
   {
     verbname = match[3];
-    userid = anonymize ? anonymized_usernames[match[3]] : match[3];
+    userid = anonymizer(match[3]);
     stringstream customDetails;
 
     customDetails << "the attempt with id '" << match[2] << "' belonging for the user with id '" << match[1] << "' for the quiz with course module id '" << match[5] << "'.";
@@ -161,7 +161,7 @@ XAPI::ActivityEntry::ToXapiStatement(bool anonymize)
 			 regex("[Tt]he user with id '(-*[[:alnum:]]+)'( has)*( had)*( manually)* ([[:alnum:]]+) (.*)")) )
   {
     // actual user completing a task
-    userid = anonymize ? anonymized_usernames[match[1]] : match[1];
+    userid = anonymizer(match[1]);
     stringstream	homepage;
     homepage << HOMEPAGE_URL_PREFIX << userid;
     verbname = match[5];
@@ -397,7 +397,7 @@ XAPI::ActivityEntry::ToXapiStatement(bool anonymize)
       activityType = "attempt";
       tmp_id = match_details[1];
       string quiz_id = match_details[3];
-      string target_userid = anonymize ? anonymized_usernames[match_details[2]] : match_details[2];
+      string target_userid = anonymizer(match_details[2]);
       stringstream target_user_homepage;
       target_user_homepage << HOMEPAGE_URL_PREFIX << target_userid;
 

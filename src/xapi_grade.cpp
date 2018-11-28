@@ -8,7 +8,7 @@
 using namespace boost;
 using namespace std;
 using json = nlohmann::json;
-extern XAPI::Anonymizer anonymized_usernames;
+extern XAPI::Anonymizer anonymizer;
 ////////////////////////////////////////////////////////////////////////////////
 const std::map<std::string,int> monthValues= {
   { "tammikuu", 1},
@@ -71,14 +71,14 @@ XAPI::GradeEntry::ParseTimestamp(const string & strtime)
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
-XAPI::GradeEntry::Parse( const std::vector<std::string> & vec, bool anonymize ) 
+XAPI::GradeEntry::Parse( const std::vector<std::string> & vec ) 
 {
   // break line into comma-separated parts.
   ParseTimestamp(vec.at(0));
    
-  username = anonymize ? anonymized_usernames[vec.at(1)] : vec.at(1); // gradee
+  username = anonymizer(vec.at(1)); // gradee
 
-  related_username = anonymize ? anonymized_usernames[vec.at(6)] : vec.at(6); // grader
+  related_username = anonymizer(vec.at(6)); // grader
     
   context = vec.at(3); // task name
     
@@ -118,7 +118,7 @@ XAPI::GradeEntry::GetTaskName()
 }
 ////////////////////////////////////////////////////////////////////////////////
 std::string
-XAPI::GradeEntry::ToXapiStatement(bool anonymize)
+XAPI::GradeEntry::ToXapiStatement()
 {
   json statement;
   

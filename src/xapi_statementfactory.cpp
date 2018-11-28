@@ -12,7 +12,7 @@ std::map<std::string, std::string> UserIDToUserName = {};
 std::string XAPI::StatementFactory::course_id = std::string();
 std::string XAPI::StatementFactory::course_name = std::string();
 ////////////////////////////////////////////////////////////////////////////////
-XAPI::Anonymizer  anonymized_usernames; 
+XAPI::Anonymizer  anonymizer; 
 ////////////////////////////////////////////////////////////////////////////////
 const std::map<std::string, std::string> supportedVerbs = {
   /*{ "added", ""},*/
@@ -103,35 +103,35 @@ XAPI::StatementFactory::StatementFactory()
 }
 ////////////////////////////////////////////////////////////////////////////////
 std::string
-XAPI::StatementFactory::CreateActivity( const std::string & line, bool anonymize )
+XAPI::StatementFactory::CreateActivity( const std::string & line )
 {
   ActivityEntry e;
   // set from command line
   e.course_id = course_id;
   e.course_name = course_name;
-  e.Parse(line,anonymize);
-  return e.ToXapiStatement(anonymize);
+  e.Parse(line);
+  return e.ToXapiStatement();
 }
 ////////////////////////////////////////////////////////////////////////////////
 std::string
-XAPI::StatementFactory::CreateActivity( const std::vector<std::string> & lineAsVector, bool anonymize )
+XAPI::StatementFactory::CreateActivity( const std::vector<std::string> & lineAsVector )
 {
   ActivityEntry e;
   // set from command line
   e.course_id = course_id;
   e.course_name = course_name;
-  e.Parse(lineAsVector,anonymize);
-  return e.ToXapiStatement(anonymize);
+  e.Parse(lineAsVector);
+  return e.ToXapiStatement();
 }
 ////////////////////////////////////////////////////////////////////////////////
 std::string
-XAPI::StatementFactory::CreateGradeEntry( const std::vector<std::string> & lineAsVector, bool anonymize )
+XAPI::StatementFactory::CreateGradeEntry( const std::vector<std::string> & lineAsVector )
 {
   GradeEntry e;
   // set from command line
   e.course_id = course_id;
   e.course_name = course_name;
-  e.Parse(lineAsVector,anonymize);
-  return e.ToXapiStatement(anonymize);
+  e.Parse(lineAsVector);
+  return e.ToXapiStatement();
 }
 ////////////////////////////////////////////////////////////////////////////////

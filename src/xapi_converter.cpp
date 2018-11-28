@@ -7,6 +7,7 @@
 #include <xapi_entry.h>
 #include <xapi_grade.h>
 #include <xapi_statementfactory.h>
+#include <xapi_anonymizer.h>
 #include <string>
 #include <cctype>
 #include <json.hpp>
@@ -22,6 +23,8 @@ const int NUM_ARGUMENTS_WITHOUT_SENDING = 3;
 namespace po = boost::program_options;
 std::map<std::string,int> errorMessages;
 string throbber = "|/-\\|/-\\";
+extern XAPI::Anonymizer anonymizer;
+////////////////////////////////////////////////////////////////////////////////
 namespace XAPI
 {
   class Progress
@@ -117,6 +120,8 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   
   print = vm.count("print") > 0;
   anonymize = vm.count("anonymize") > 0;
+  anonymizer.enabled = anonymize;
+  
   XAPI::StatementFactory::course_id   = context.courseurl;
   XAPI::StatementFactory::course_name = context.coursename;
   
@@ -215,9 +220,9 @@ XAPI::Application::ParseJSONEventLog()
     {
       // use overwritten version of Parse
 			
-      string tmp = XAPI::StatementFactory::CreateActivity(lineasvec,anonymize);
-			#pragma omp critical
-			statements.push_back(tmp);
+      string tmp = XAPI::StatementFactory::CreateActivity(lineasvec);
+#pragma omp critical
+      statements.push_back(tmp);
     }
     catch ( xapi_no_result_error & ex )
     {
