@@ -5,7 +5,6 @@
 using namespace std;
 using namespace XAPI;
 ////////////////////////////////////////////////////////////////////////////////
-const string VERB_URL_PREFIX = "http://adlnet.gov/expapi/verbs/viewed";
 std::map<std::string, std::string> TaskNameToTaskID = {};
 std::map<std::string, std::string> UserNameToUserID = {};
 std::map<std::string, std::string> UserIDToUserName = {};
@@ -44,27 +43,27 @@ const std::map<std::string, std::string> supportedVerbs = {
 };
 
 // supported activity target types
-const std::map<std::string, std::string> activityTypes = {
-  { "collaborate", "https://moodle.karelia.fi/mod/collaborate/view.php?id="},
-  { "quiz", "https://moodle.karelia.fi/mod/quiz/view.php?id=" },
-  { "page", "https://moodle.karelia.fi/mod/page/view.php?id=" },
-  { "resource", "https://moodle.karelia.fi/mod/resource/view.php?id="},
-  { "url", "https://moodle.karelia.fi/mod/url/view.php?id=" },
-  { "forum", "https://moodle.karelia.fi/mod/forum/view.php?id="},
-  { "hsuforum", "https://moodle.karelia.fi/mod/hsuforum/view.php?id="},
-  { "lti", "https://moodle.karelia.fi/mod/lti/view.php?id=" },
-  { "course", "https://moodle.karelia.fi/course/view.php?id="},
-  { "assignment", "https://moodle.karelia.fi/mod/assign/view.php?id=" },
-  { "lesson", "https://moodle.karelia.fi/mod/lesson/view.php?id=" },
-  { "section", "https://moodle.karelia.fi/course/view.php?id=" }, // needs to add also #section-<NUMBER>
-  { "hvp", "https://moodle.karelia.fi/mod/hvp/view.php?id=" },
-  { "attempt", "https://moodle.karelia.fi/mod/quiz/review.php?attempt=" },
-  { "book", "https://moodle.karelia.fi/mod/book/view.php?id="},
-  { "chapter", "https://moodle.karelia.fi/mod/book/view.php?id="}, // needs to add also &chapterid=<NUMBER>
-  { "discussion", "https://moodle.karelia.fi/mod/forum/discuss.php?d="},
-  { "user", "https://moodle.karelia.fi/user/profile.php?id="},
-  { "post", "https://moodle.karelia.fi/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
-  { "reply", "https://moodle.karelia.fi/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
+std::map<std::string, std::string> activityTypes = {
+  { "collaborate", "/mod/collaborate/view.php?id="},
+  { "quiz", "/mod/quiz/view.php?id=" },
+  { "page", "/mod/page/view.php?id=" },
+  { "resource", "/mod/resource/view.php?id="},
+  { "url", "/mod/url/view.php?id=" },
+  { "forum", "/mod/forum/view.php?id="},
+  { "hsuforum", "/mod/hsuforum/view.php?id="},
+  { "lti", "/mod/lti/view.php?id=" },
+  { "course", "/course/view.php?id="},
+  { "assignment", "/mod/assign/view.php?id=" },
+  { "lesson", "/mod/lesson/view.php?id=" },
+  { "section", "/course/view.php?id=" }, // needs to add also #section-<NUMBER>
+  { "hvp", "/mod/hvp/view.php?id=" },
+  { "attempt", "/mod/quiz/review.php?attempt=" },
+  { "book", "/mod/book/view.php?id="},
+  { "chapter", "/mod/book/view.php?id="}, // needs to add also &chapterid=<NUMBER>
+  { "discussion", "/mod/forum/discuss.php?d="},
+  { "user", "/user/profile.php?id="},
+  { "post", "/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
+  { "reply", "/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
 };
 // some heuristics to match completion state updates 
 const std::map<std::string, std::string> contextModuleLocaleToActivityType = {
