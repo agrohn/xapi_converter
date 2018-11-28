@@ -61,7 +61,7 @@ XAPI::ActivityEntry::ParseTimestamp(const string & strtime)
 void
 XAPI::ActivityEntry::Parse(const std::vector<std::string> & vec ) 
 {
-	
+  
   ParseTimestamp(vec.at(0));
   
   username =  anonymizer(vec.at(1));
@@ -116,298 +116,408 @@ XAPI::ActivityEntry::ToXapiStatement()
   json activityContext;
   json grouping = {
     { "grouping", {
-	{
-	  { "objectType", "Activity" },
-	  { "id", course_id },
-	  { "definition",
-	    {
-	      { "description",
-		{
-		  { "en-GB", course_name}
-		}
-	      },
-	      { "type", "http://adlnet.gov/expapi/activities/course"}
-	    }
-	  }
-	}
+        {
+          { "objectType", "Activity" },
+          { "id", course_id },
+          { "definition",
+            {
+              { "description",
+                {
+                  { "en-GB", course_name}
+                }
+              },
+              { "type", "http://adlnet.gov/expapi/activities/course"}
+            }
+          }
+        }
       }
     }
   };
   json extensions;
-  
+
   activityContext =  {
     { "contextActivities", grouping }
   };
 
-   smatch match;
+  smatch match;
   string verbname;
-  string details;
 
-	/* 
-"The user with id '' created the 'collaborate' activity with course module id ''."
-"The user with id '' deleted the 'collaborate' activity with course module id ''."
-"The user with id '' updated the 'collaborate' activity with course module id ''."
-"The user with id '' created the 'quiz' activity with course module id ''."
-"The user with id '' deleted the 'quiz' activity with course module id ''."
-"The user with id '' updated the 'page' activity with course module id ''."
-"The user with id '' viewed the 'page' activity with course module id ''.
-"The user with id '' created the 'page' activity with course module id ''."
-"The user with id '' viewed the 'quiz' activity with course module id ''."
-"The user with id '' created the 'resource' activity with course module id ''."
-"The user with id '' deleted the 'resource' activity with course module id ''."
-"The user with id '' updated the 'resource' activity with course module id ''."
-"The user with id '' viewed the 'resource' activity with course module id ''."
-"The user with id '' created the 'url' activity with course module id ''."
-"The user with id '' updated the 'url' activity with course module id ''."
-"The user with id '' viewed the 'url' activity with course module id ''."
-"The user with id '' updated the 'forum' activity with course module id ''."
-"The user with id '' viewed the 'forum' activity with course module id ''."
-"The user with id '' viewed the 'hsuforum' activity with course module id ''."
-"The user with id '' created the 'forum' activity with course module id ''."
-"The user with id '' created the 'lti' activity with course module id ''."
-"The user with id '' viewed the 'lti' activity with course module id ''."
-"The user with id '' created the 'hvp' activity with course module id ''."
-"The user with id '' updated the 'hvp' activity with course module id ''."
-"The user with id '' viewed the 'hvp' activity with course module id ''."
-"The user with id '' viewed the 'book' activity with course module id ''."
-"The user with id '' created the 'label' activity with course module id ''."
-"The user with id '' updated the 'label' activity with course module id ''."
-	*/
-	
+
+  string activity_id;
+  string activityType;
+  string sectionNumber; // required only for course sections
+  string chapterNumber; // required only for book chapters
+  string postNumber;    // required for discussion posts
+  string discussionNumber; // required for discussion posts
+  string attemptNumber; // for submissions
+  string userWhoIsProcessed; // target user
+
+  /*
+    "The user with id '' created the '' activity with course module id ''."
+  */
+  
   if ( regex_search(description, match,
-		    regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the '(quiz|page|collaborate|resource|url|forum|hsuforum|lti|hvp|book|label)' activity with course module id '([[:digit:]]+)'\\.")) )
-  {
-		
-	}
-	/*
-"The user with id '' has searched the course with id '' for forum posts containing """"."
-"The user with id '' has searched the course with id '' for forum posts containing ""Kuuntelu""."
-"The user with id '' has searched the course with id '' for forum posts containing ""oona""."
-"The user with id '' has searched the course with id '' for forum posts containing ""opintojaksopalaute""."
-"The user with id '' updated the course with id ''.
-"The user with id '' viewed the course information for the course with id ''."
-"The user with id '' viewed the course with id ''."
-	*/
-	else if ( regex_search(description, match,
-		    regex("[Tt]he user with id '([[:digit:]]+)'( has)? ([[:alnum:]]+) the course (information for the course )?with id '([[:digit:]]+)'.*")) )
+                    regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the '(quiz|page|collaborate|resource|url|forum|hsuforum|lti|hvp|book|label)' activity with course module id '([[:digit:]]+)'\\.")) )
   {
 
-	}
-	/*
-		"The user with id '' added the comment with id '' to the submission with id '' for the assignment with course module id ''."
-		"The user with id '' deleted the comment with id '' from the submission with id '' for the assignment with course module id ''."
-	*/
-	else if ( regex_search(description, match,
-												regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the comment with id '([[:digit:]]+)' (to|from) the submission with id '([[:digit:]]+)' for the assignment with course module id '([[:digit:]]+)'\\.")) )
-	{
-	 //http://adlnet.gov/expapi/verbs/commented
-	}
-/*
-		"The user with id '' has submitted the submission with id '' for the assignment with course module id ''."
-		"The user with id '' has uploaded a file to the submission with id '' in the assignment activity with course module id ''."		
-
-		"The user with id '' viewed their submission for the assignment with course module id ''."
-		"The user with id '' created a file submission and uploaded '' file/s in the assignment with course module id ''."
-		"The user with id '' updated a file submission and uploaded '' file/s in the assignment with course module id ''."
-
-
-		"The user with id '' has graded the submission '' for the user with id '' for the assignment with course module id ''."
-		"The user with id '' has viewed the submission status page for the assignment with course module id ''."
-		"The user with id '' viewed the grading form for the user with id '' for the assignment with course module id ''."
-		"The user with id '' viewed the grading table for the assignment with course module id ''."
-
-	*/
-	
-	else if ( regex_search(description, match,
-												 regex("[Tt]he user with id '([[:digit:]]+)'( has)? ([[:alnum:]]+) (the|a|their) (.*)the assignment( activity)? with course module id '([[:digit:]]+)'\\.")) )
-	{
-		// assignment submission
-	}
-	/*
-		"The user with id '' created section number '' for the course with id ''"
-		"The user with id '' updated section number '' for the course with id ''"
-		"The user with id '' viewed the section number '' of the course with id ''."
-	*/
-	 else if ( regex_search(description, match,
-													regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) section number '([[:digit:]]+)' for the course with id '([[:digit:]]+)'\\.")))
-	 {
-		 // section number
-	 }
-	/*
-		"The user with id '' has had their attempt with id '' marked as abandoned for the quiz with course module id ''."
-		"The user with id '' has started the attempt with id '' for the quiz with course module id ''."
-		"The user with id '' has submitted the attempt with id '' for the quiz with course module id ''."
-	*/
-	 else if ( regex_search(description, match,
-													regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the(ir)? attempt with id '([[:digit:]]+)' ([[:alnum:]]+) for the quiz with course module id '([[:digit:]]+)'\\.")) )
-	 {
-		 
-	 }
-	/*
-		
-		"The user with id '' has had their attempt with id '' previewed by the user with id '' for the quiz with course module id ''."
-		"The user with id '' has had their attempt with id '' reviewed by the user with id '' for the quiz with course module id ''."
-		"The user with id '' has viewed the attempt with id '' belonging to the user with id '' for the quiz with course module id ''."
-		"The user with id '' has viewed the summary for the attempt with id '' belonging to the user with id '' for the quiz with course module id ''."
-	*/
-	 else if ( regex_search(description, match,
-													regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the(ir?) (summary for )?attempt with id '([[:digit:]]+)' ([[:alnum:]]+) (by|to) the user with id '([[:digit:]]+)' for the quiz with course module id '([[:digit:]]+)'\\.")) )
-	 {
-		 // preview, review, view attempt (summary)
-	 }
-	/* 
-		 "The user with id '' has printed the book with course module id ''."
-	*/
-	 else if ( regex_search(description, match,
-													regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the book with course module id '([[:digit:]]+)'\\.")) )
-	 {
-		 
-	 }
-	/*
-		"The user with id '' viewed the chapter with id '' for the book with course module id ''."
-	*/
-	 else if ( regex_search(description, match,
-													regex("[Tt]he user with id '([[:digit:]]+)' viewed the chapter with id '([[:digit:]]+)' for the book with course module id '([[:digit:]]+)'\\.")) )
-	 {
-		 //chapter
-	 }
-
-	/*
-"The user with id '' has created the discussion with id '' in the forum with course module id ''."
-"The user with id '' has created the discussion with id '' in the forum with the course module id ''."
-"The user with id '' has viewed the discussion with id '' in the forum with course module id ''."
-"The user with id '' has viewed the discussion with id '' in the forum with the course module id ''."
-
-	 */
-		 else if ( regex_search(description, match,
-														regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the discussion with id '([[:digit:]]+)' in the forum with (the )?course module id '([[:digit:]]+)'\\.")) )
-		 {
-			 //discussion
-		 }
-	/*
-		"The user with id '' enrolled the user with id '' using the enrolment method 'manual' in the course with id ''."
-		"The user with id '' enrolled the user with id '' using the enrolment method 'self' in the course with id ''."
-		"The user with id '' unenrolled the user with id '' using the enrolment method 'self' from the course with id ''."
-	*/
-		 else if ( regex_search(description, match,
-														regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the user with id '([[:digit:]]+)' using the enrolment method '(self|manual)' (in|from) the course module id '([[:digit:]]+)'\\.")) )
-		 {
-			 // user unenrolled, enrolled
-		 }
-	/*
-		"The user with id '' subscribed the user with id '' to the discussion with id '' in the forum with the course module id ''."
-	*/
-		 else if ( regex_search(description, match,
-														regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the user with id '([[:digit:]]+)' to the discussion[[:blank:]]+with id '([[:digit:]]+)' in the forum with the course module id '([[:digit:]]+)'\\.")) )
-		 {
-			 // subscribed user to discussion
-		 }
-	/*
-		"The user with id '' subscribed the user with id '' to the forum with course module id ''."
-	*/
-		 else if ( regex_search(description, match,
-														regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the user with id '([[:digit:]]+)' to the forum with course module id '([[:digit:]]+)'.")) )
-		 {
-			 // subscribed a user to forum
-		 }
-	/*
-		"The user with id '' has created the post with id '' in the discussion with id '' in the forum with course module id ''."
-		"The user with id '' has created the post with id '' in the discussion with id '' in the forum with the course module id ''."
-		"The user with id '' has updated the post with id '' in the discussion with id '' in the forum with course module id ''."
-		"The user with id '' has posted content in the forum post with id '' in the discussion '' located in the forum with course module id ''." // REPLY
-		"The user with id '' has posted content in the forum post with id '' in the discussion '' located in the forum with the course module id ''." // REPLY
-
-	*/
-		 else if ( regex_search(description, match,
-														regex("[Tt]he user with id '([[:digit:]]+)' has (created|posted content|updated) (in )?(the )?(forum )?post with id '([[:digit:]]+)' in the discussion (with id )?'([[:digit:]]+)' (located )?in the forum with (the )?course module id '([[:digit:]]+)'\\.")) )
-		 {
-			 
-		 }
-
-	// ignored
-	//"The user with id '' restored old course with id '' to a new course with id ''."
-	
-	//////////
-  // This entry has differs from general form; we customize it here so we can reuse existing code.
-  if ( regex_search(description, match,
-                    regex("[Tt]he user with id '([[:digit:]]+)' has had their attempt with id '([[:digit:]]+)' ([[:alnum:]]+) by the user with id '([[:digit:]])+' for the quiz with course module id '([[:digit:]]+)'\\.")) )
-  {
-    verbname = match[3];
-    userid = anonymizer(match[3]);
-    stringstream customDetails;
-
-    customDetails << "the attempt with id '" << match[2] << "' belonging for the user with id '" << match[1] << "' for the quiz with course module id '" << match[5] << "'.";
-    details = customDetails.str();
-
-    stringstream	homepage;
-    homepage << activityTypes["homepage"] << userid;
-    actor = {
-      {"objectType", "Agent"},
-      {"name", UserNameToUserID[username]},
-      {"account",{}},
-
-    };
-    actor["account"] = {
-      {"name", userid }, 
-      {"homePage", homepage.str()}
-    };
-  }
-  else if ( regex_search(description, match,
-			 regex("[Tt]he user with id '(-*[[:alnum:]]+)'( has)*( had)*( manually)* ([[:alnum:]]+) (.*)")) )
-  {
-    // actual user completing a task
     userid = anonymizer(match[1]);
-    stringstream	homepage;
-    homepage << activityTypes["homepage"] << userid;
-    verbname = match[5];
-    details = match[6];
-    //cerr << "matches:\n";
-    /*int c=0;
-      for(auto & m : match )
-      {
-      cerr << c++ << ":" << m << "\n";
-      }*/
-
-    // construct fake email for testing
-      
-    actor = {
-      {"objectType", "Agent"},
-      {"name", username},
-      {"account",{}},
-
-    };
-    actor["account"] = {
-      {"name", userid }, 
-      {"homePage", homepage.str()}
-    };
-    string details = match[6];
-      
+    verbname = match[2];
+    activityType = match[3];
+    activity_id = match[4];
+    
   }
+  /*
+    "The user with id '' has searched the course with id '' for forum posts containing """"."
+    "The user with id '' updated the course with id ''.
+    "The user with id '' viewed the course information for the course with id ''."
+    "The user with id '' viewed the course with id ''."
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)'( has)? ([[:alnum:]]+) the course (information for the course )?with id '([[:digit:]]+)'.*")) )
+  {
+    userid = anonymizer(match[1]);
+    verbname = match[3];
+    activityType = "course";
+    activity_id = match[5];
+  }
+  /*
+    "The user with id '' added the comment with id '' to the submission with id '' for the assignment with course module id ''."
+    "The user with id '' deleted the comment with id '' from the submission with id '' for the assignment with course module id ''."
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the comment with id '([[:digit:]]+)' (to|from) the submission with id '([[:digit:]]+)' for the assignment with course module id '([[:digit:]]+)'\\.")) )
+  {
+    //http://adlnet.gov/expapi/verbs/commented
+    userid = anonymizer(match[1]);
+    verbname = match[2];
+    activityType = "comment";
+    activity_id = match[6];
+    // context: assignment
+    // target: submission
+    //extension http://id.tincanapi.com/extension/attempt-id
+  }
+  /*
+    "The user with id '' has submitted the submission with id '' for the assignment with course module id ''."
+    "The user with id '' has uploaded a file to the submission with id '' in the assignment activity with course module id ''."     
+    "The user with id '' has graded the submission '' for the user with id '' for the assignment with course module id ''."
+
+
+  */
+  
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)'( has)? ([[:alnum:]]+) (the submission|a file to the submission) with id '([[:digit:]]+)' (for|in) the assignment( activity)? with course module id '([[:digit:]]+)'\\.")) )
+  {
+    // assignment submission
+    userid = anonymizer(match[1]);
+    verbname = match[3];
+    activityType = "assignment";
+    attemptNumber = match[4];
+    activity_id = match[8];
+    extensions["http://id.tincanapi.com/extension/attempt-id"] = attemptNumber;
+  }
+  /*
+    "The user with id '' viewed their submission for the assignment with course module id ''."
+    "The user with id '' created a file submission and uploaded '' file/s in the assignment with course module id ''."
+    "The user with id '' updated a file submission and uploaded '' file/s in the assignment with course module id ''."
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) (their|a file) submission (.*) the assignment with course module id '([[:digit:]]+)'\\.")) )
+  {
+    // assignment submission
+    userid = anonymizer(match[1]);
+    verbname = match[2];
+    activityType = "assignment";
+    activity_id = match[5];
+  
+  }
+  /*
+    "The user with id '' created section number '' for the course with id ''"
+    "The user with id '' updated section number '' for the course with id ''"
+    "The user with id '' viewed the section number '' of the course with id ''."
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) section number '([[:digit:]]+)' for the course with id '([[:digit:]]+)'\\.")))
+  {
+    userid = anonymizer(match[1]);
+    verbname = match[2];
+    activityType = "section";
+    sectionNumber = match[3];
+    activity_id = match[4];
+  }
+  /*
+    "The user with id '' has had their attempt with id '' marked as abandoned for the quiz with course module id ''."
+    "The user with id '' has started the attempt with id '' for the quiz with course module id ''."
+    "The user with id '' has submitted the attempt with id '' for the quiz with course module id ''."
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the(ir)? attempt with id '([[:digit:]]+)' (marked as abandoned )?for the quiz with course module id '([[:digit:]]+)'\\.")) )
+  {
+    userid = anonymizer(match[1]);
+    verbname = match[2];
+    if ( verbname == "had" ) verbname = "abandoned";
+     
+    activityType = "attempt";
+    attemptNumber = match[4]; 
+    activity_id = match[6]; // quiz
+  }
+  /*
+    
+    "The user with id '' has had their attempt with id '' previewed by the user with id '' for the quiz with course module id ''."
+    "The user with id '' has had their attempt with id '' reviewed by the user with id '' for the quiz with course module id ''."
+    "The user with id '' has viewed the attempt with id '' belonging to the user with id '' for the quiz with course module id ''."
+    "The user with id '' has viewed the summary for the attempt with id '' belonging to the user with id '' for the quiz with course module id ''."
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the(ir?) (summary for )?attempt with id '([[:digit:]]+)' ([[:alnum:]]+) (by|to) the user with id '([[:digit:]]+)' for the quiz with course module id '([[:digit:]]+)'\\.")) )
+  {
+    // preview, review, view attempt (summary)
+    userid = anonymizer(match[1]);
+    verbname = match[2];
+    if ( verbname == "had" )
+    {
+      verbname = match[6];
+      userid = anonymizer(match[8]);
+      userWhoIsProcessed = anonymizer(match[1]);
+    }
+    else
+    {
+      userWhoIsProcessed = anonymizer(match[8]);
+    }
+     
+    activityType = "quiz";
+    activity_id = anonymizer(match[9]);
+    attemptNumber = match[5]; // quiz
+
+     
+    stringstream processed_user_homepage;
+    processed_user_homepage << activityTypes["homepage"] << userWhoIsProcessed;
+     
+     
+    // add user to statement related context
+    json user = {
+      { "objectType", "Agent"},
+      { "name", UserIDToUserName[userWhoIsProcessed]}, // todo fix username here as well
+      { "account",{}},
+    };
+    user["account"] = {
+      {"name", userWhoIsProcessed }, 
+      {"homePage", processed_user_homepage.str()}
+    };
+
+    auto it = moodleXapiActivity.find("attempt");
+     
+    // add to related context
+    extensions["http://id.tincanapi.com/extension/target"] = user;
+    extensions["http://id.tincanapi.com/extension/attempt-id"] = it->second + attemptNumber;
+  }
+  /* 
+     "The user with id '' has printed the book with course module id ''."
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the book with course module id '([[:digit:]]+)'\\.")) )
+  {
+    userid = anonymizer(match[1]);
+    verbname = match[2];
+    activityType = "book";
+    activity_id = match[3]; 
+  }
+  /*
+    "The user with id '' viewed the chapter with id '' for the book with course module id ''."
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' viewed the chapter with id '([[:digit:]]+)' for the book with course module id '([[:digit:]]+)'\\.")) )
+  {
+    //chapter
+    userid = anonymizer(match[1]);
+    verbname = "viewed";
+    activityType = "book";
+    chapterNumber =  match[2];
+    activity_id = match[3]; 
+  }
+
+  /*
+    "The user with id '' has created the discussion with id '' in the forum with course module id ''."
+    "The user with id '' has created the discussion with id '' in the forum with the course module id ''."
+    "The user with id '' has viewed the discussion with id '' in the forum with course module id ''."
+    "The user with id '' has viewed the discussion with id '' in the forum with the course module id ''."
+
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the discussion with id '([[:digit:]]+)' in the forum with (the )?course module id '([[:digit:]]+)'\\.")) )
+  {
+    //discussion
+    userid = anonymizer(match[1]);
+    verbname = match[2];
+    activityType = "discussion";
+    postNumber = match[3];
+    activity_id = match[5]; 
+  }
+  /*
+    "The user with id '' enrolled the user with id '' using the enrolment method 'manual' in the course with id ''."
+    "The user with id '' enrolled the user with id '' using the enrolment method 'self' in the course with id ''."
+    "The user with id '' unenrolled the user with id '' using the enrolment method 'self' from the course with id ''."
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the user with id '([[:digit:]]+)' using the enrolment method '(self|manual)' (in|from) the course with id '([[:digit:]]+)'\\.")) )
+  {
+    // user unenrolled, enrolled
+    userid = anonymizer(match[1]);
+    verbname = match[2];
+    userWhoIsProcessed = match[3];
+       
+    activityType = "course";
+    string method = match[4]; // self|manual
+    activity_id = match[6]; 
+       
+    if ( method != "self" ) // in case user was unenrolled by some other user
+    {
+      stringstream target_user_homepage;
+      target_user_homepage << activityTypes["homepage"] << anonymizer(userWhoIsProcessed);
+         
+      // actor was the (un)enroller, actual user that was (un)enrolled needs to be set as actor.
+      json target_user = {
+        { "objectType", "Agent"},
+        { "name", anonymizer(UserIDToUserName[userWhoIsProcessed])}, // todo fix username here as well
+        { "account",{}},
+      };
+      target_user["account"] = {
+        {"name", anonymizer(userWhoIsProcessed) }, 
+        {"homePage", target_user_homepage.str()}
+      };
+         
+      // add (un)enroller to related context
+      extensions["http://id.tincanapi.com/extension/target"] = target_user;
+    }
+       
+  }
+  /*
+    "The user with id '' subscribed the user with id '' to the discussion with id '' in the forum with the course module id ''."
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the user with id '([[:digit:]]+)' to the discussion[[:blank:]]+with id '([[:digit:]]+)' in the forum with the course module id '([[:digit:]]+)'\\.")) )
+  {
+    // subscribed user to discussion
+    userid = anonymizer(match[1]);
+    verbname = match[2];
+    userWhoIsProcessed = anonymizer(match[3]);
+    activityType = "discussion";
+    postNumber = match[4];
+    activity_id = match[5];
+    // check should target be event added if "self"
+  }
+  /*
+    "The user with id '' subscribed the user with id '' to the forum with course module id ''."
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the user with id '([[:digit:]]+)' to the forum with course module id '([[:digit:]]+)'.")) )
+  {
+    // subscribed a user to forum
+    // subscribed user to discussion
+    userid = anonymizer(match[1]);
+    verbname = match[2];
+    userWhoIsProcessed = anonymizer(match[3]);
+    activityType = "forum";
+    activity_id = match[4];
+    // check should target be event added if "self"
+  }
+  /*
+    "The user with id '' has created the post with id '' in the discussion with id '' in the forum with course module id ''."
+    "The user with id '' has created the post with id '' in the discussion with id '' in the forum with the course module id ''."
+    "The user with id '' has updated the post with id '' in the discussion with id '' in the forum with course module id ''."
+    "The user with id '' has posted content in the forum post with id '' in the discussion '' located in the forum with course module id ''." // REPLY
+    "The user with id '' has posted content in the forum post with id '' in the discussion '' located in the forum with the course module id ''." // REPLY
+
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' has (created|posted content|updated) (in )?(the )?(forum )?post with id '([[:digit:]]+)' in the discussion (with id )?'([[:digit:]]+)' (located )?in the forum with (the )?course module id '([[:digit:]]+)'\\.")) )
+  {
+    userid = anonymizer(match[1]);
+    verbname = "posted";
+    userWhoIsProcessed = anonymizer(match[3]);
+    activityType = "reply";
+    postNumber = match[6];
+    discussionNumber = match[8];
+    activity_id = match[8];
+    // mark forum as parent 
+    activityContext["contextActivities"]["parent"] = {
+      { "id", match[11] }
+    };
+       
+  }
+  /* special case when assignment status is updated by system */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' updated the completion state for the course module with id '([[:digit:]]+)' for the user with id '([[:digit:]]+)'\\.")) )
+  {
+    // This can be almost anything for the completion state. It happens to be locale-specific, so it needs additional parsing.
+    // Currently we support only finnish.
+    auto it = contextModuleLocaleToActivityType.find(context_module_locale_specific);
+    if ( it != contextModuleLocaleToActivityType.end())
+    {
+      activityType = it->second;
+    }
+    else
+    {
+      // we never should get here, but better safe than sorry.
+      throw xapi_activity_type_not_supported_error("(Localized: "+context_module_locale_specific+")");
+    }
+      
+    // We also assume that you update completion status only to "completed" one.
+  }
+  
   else if ( regex_search(description, match, regex("User ([[:digit:]]+) (updated|created) the question ([[:digit:]]+)\\.")))
   {
     // we cannot create proper log entry using this kind of statement moodle logs give us.
-    verbname = match[2];
     throw xapi_activity_ignored_error(verbname+":question (question id without proper course module id)");
   }
-  else
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the grade with id '([[:digit:]]+)' for the user with id '([[:digit:]]+)' for the grade item with id '([[:digit:]]+)'") ))
   {
-    throw xapi_parsing_error("could not extract xapi statement for actor: " + description);
+    throw xapi_activity_ignored_error("updated/deleted:grade");
   }
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the (event|backup|instance of enrolment method) '(.*)' with id '([[:digit:]]+)'") ))
+  {
+    throw xapi_activity_ignored_error("updated:event/instance");
+  }
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the (user|grader|history|overview)( log| statistics)* report .*")))
+  {
+    throw xapi_activity_ignored_error("viewed:(log/statistics/history/overview/grade)report");
+  }
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the list of available badges .*")))
+  {
+    throw xapi_activity_ignored_error("viewed:available badge list");
+  }
+  // ignored
+  //"The user with id '' restored old course with id '' to a new course with id ''."
+  //"The user with id '' has viewed the submission status page for the assignment with course module id ''."
+  //  "The user with id '' viewed the grading form for the user with id '' for the assignment with course module id ''."
+  //  "The user with id '' viewed the grading table for the assignment with course module id ''."
 
   if ( username.empty() ) throw xapi_parsing_error("no username found for: " + description);
-  //cerr << "setting username-id pair: " << username << " -> " << userid << "\n";
+  
   UserNameToUserID[username] = userid;
   UserIDToUserName[userid] = username;
-
-
-
-  //////////
-  // create verb jsonseek verb
   
-  // Find verb from description
+  ////////////////////  
+  // construct actual user completing a task
+  stringstream  homepage;
+  homepage << activityTypes["homepage"] << userid;
+  actor = {
+    {"objectType", "Agent"},
+    {"name", username},
+    {"account",{}},
+    
+  };
+  actor["account"] = {
+    {"name", userid }, 
+    {"homePage", homepage.str()}
+  };
+
+  ////////////////////
+  // constuct verb in statement
   json verb;
-
-  
   {
     auto it = supportedVerbs.find(verbname);
     if ( it == supportedVerbs.end())
@@ -421,287 +531,21 @@ XAPI::ActivityEntry::ToXapiStatement()
       {"id", verb_xapi_id },
       {"display",
        {
-	 {"en-GB", verbname} // this will probably depend on subtype (see object)
+         {"en-GB", verbname} // this will probably depend on subtype (see object)
        }
       }
     };
   }
-
-
-
   
   /////////
   // Object
   // construct object (activity)
-    
   json object;
-  smatch match_details;
-  string tmp_id;
-  string activityType;
-  string sectionNumber; // required only for course sections
-  string chapterNumber; // required only for book chapters
-  string postNumber;    // required for discussion posts
-  if ( verbname == "submitted"  )
-  {
-    regex re_details("the (submission|attempt) with id '([[:digit:]]+)' for the (assignment|quiz) with course module id '([[:digit:]]+)'.*");
-    if ( regex_search(details, match_details, re_details) )
-    {
-      //verb["display"]["en-GB"] = attempted?
-      activityType = match_details[3]; // assignment / quiz
-      tmp_id       = match_details[4];
-	
-    } else throw xapi_parsing_error("submitted/attempted: " + details);
-  }
-  else if ( verbname == "updated" )
-  {
-    /* special case when assignment status is updated by system */
-    if ( regex_search(details, match_details,
-		      regex("the completion state for the course module with id '([[:digit:]]+)' for the user with id '([[:digit:]]+)'\\.") ))
-    {
-      // This can be almost anything for the completion state. It happens to be locale-specific, so it needs additional parsing.
-      // Currently we support only finnish.
-      auto it = contextModuleLocaleToActivityType.find(context_module_locale_specific);
-      if ( it != contextModuleLocaleToActivityType.end())
-      {
-	activityType = it->second;
-      }
-      else
-      {
-	// we never should get here, but better safe than sorry.
-	throw xapi_activity_type_not_supported_error("(Localized: "+context_module_locale_specific+")");
-      }
-      
-      // We also assume that you update completion status only to "completed" one.
-	
-    }
-    else if ( regex_search(details, match_details,
-			   regex("(section number) '([[:digit:]]+)' for the course with id '([[:digit:]]+)'")) )
-    {
-      activityType = "section";
-      tmp_id = match_details[2];
-
-      
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the chapter with id '([[:digit:]]+)' for the book with course module id '([[:digit:]]+)'")) )
-    {
-      activityType = "chapter";
-      tmp_id = match_details[2];
-      chapterNumber = match_details[1];
-     
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the '([[:alnum:]]+)' activity with course module id '([[:digit:]]+)'.*")) )
-    {
-      activityType = match_details[1];
-      tmp_id = match_details[2];
-      
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the course with id '([[:digit:]]+)'.*")) )
-    {
-      activityType = "course";
-      tmp_id = match_details[1];
-      
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the post with id '([[:digit:]]+)' in the discussion with id '([[:digit:]]+)'.*")) )
-    {
-      activityType = "post";
-      tmp_id = match_details[2];
-      postNumber = match_details[1];
-      
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the grade with id '([[:digit:]]+)' for the user with id '([[:digit:]]+)' for the grade item with id '([[:digit:]]+)'") ))
-    {
-
-      activityType = "grade";
-      tmp_id = match_details[1];
-      throw xapi_activity_ignored_error("updated:grade");
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the (event|instance of enrolment method) '(.*)' with id '([[:digit:]]+)'") ))
-    {
-
-      activityType = "event";
-      tmp_id = match_details[1];
-      throw xapi_activity_ignored_error("updated:event/instance");
-    }
-  }
-  else if ( verbname == "started" ) // quiz attempts are started
-  {
-    regex re_details("the ([[:alnum:]]+) with id '([[:digit:]]+)' for the quiz with course module id '([[:digit:]]+)'.*");
-    if ( regex_search(details, match_details, re_details) )
-    {
-      activityType = "quiz";
-      tmp_id = match_details[3];
-    }
-    else throw xapi_parsing_error("Cannot make sense of: " + details + " in '"+ description+ "'");
-  }
-  else if ( verbname == "created" ) 
-  {
-    if ( regex_search(details, match_details,
-		      regex("(the|a)* (backup|event|instance of enrolment method).*")))
-    {
-      throw xapi_activity_ignored_error("created:backup/event/instance of enrolment");
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the post with id '([[:digit:]]+)' in the discussion with id '([[:digit:]]+)' in the forum with course module id '([[:digit:]]+)\\.")))
-    {
-      activityType = "post";
-      tmp_id = match_details[2];
-      postNumber = match_details[1];
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the discussion with id '([[:digit:]]+)' in the forum .*")))
-    {
-      activityType = "discussion";
-      tmp_id = match_details[1];
-    }
-    else if ( regex_search(details, match_details,
-			   regex("section number '([[:digit:]]+)' for the course with id '([[:digit:]]+)'")))
-    {
-      activityType = "section";
-      tmp_id = match_details[2];
-      sectionNumber = match_details[1];
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the '([[:alnum:]]+)' activity with course module id '([[:digit:]]+)'\\.")))
-    {
-      activityType = match_details[1];
-      tmp_id = match_details[2];
-    }
-    else throw xapi_parsing_error("Cannot make sense of: " + details + " in '"+ description+ "'");
-
-  }
-  else if ( verbname == "deleted" )
-  {
-    if (regex_search(details, match_details,
-		     regex("the grade with id .*"))){
-      throw xapi_activity_ignored_error("delete:grade");
-    }
-    else throw xapi_parsing_error("Cannot make sense of: " + details + " in '"+ description+ "'");
-
-  }
-  else
-  {
-    if ( regex_search(details, match_details,
-		      regex("the attempt with id '([[:digit:]]+)' belonging to the user with id '([[:digit:]]+)' for the quiz with course module id '([[:digit:]]+)'.*")) )
-    {
-      activityType = "attempt";
-      tmp_id = match_details[1];
-      string quiz_id = match_details[3];
-      string target_userid = anonymizer(match_details[2]);
-      stringstream target_user_homepage;
-      target_user_homepage << activityTypes["homepage"] << target_userid;
-
-
-      
-      // add quiz to statement related context
-      auto quizType = moodleXapiActivity.find("quiz");
-      auto it = activityTypes.find("quiz");
-      string quiz_iri = it->second + quiz_id;
-      json quiz = {
-	{ "objectType", "Activity"},
-	{ "id", quiz_iri },
-	{ "definition", {
-	    { "description",
-	      {
-		{ "en-GB", context}
-	      }
-	    },
-	    { "type", quizType->second }
-	  }
-	}
-      };
-      
-      // add user to statement related context
-      json user = {
-	{ "objectType", "Agent"},
-	{ "name", UserIDToUserName[target_userid]}, // todo fix username here as well
-	{ "account",{}},
-      };
-      user["account"] = {
-	{"name", target_userid }, 
-	{"homePage", target_user_homepage.str()}
-      };
-      
-      // add to related context
-      activityContext["contextActivities"]["other"].push_back(quiz);
-      extensions["http://id.tincanapi.com/extension/target"] = user;
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the discussion with id '([[:digit:]]+)' in the forum with course module id '([[:digit:]]+)'\\." )))
-    {
-      activityType = "discussion";
-      tmp_id = match_details[1];
-      /// \TODO add forum as related context?
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the profile for the user with id '([[:digit:]]+)' in the course with id '([[:digit:]]+)'\\." )))
-    {
-      activityType = "user";
-      tmp_id = match_details[1];
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the (user|grader|history|overview)( log| statistics)* report .*")))
-    {
-      throw xapi_activity_ignored_error("viewed:(log/statistics/history/overview/grade)report");
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the list of available badges .*")))
-    {
-      throw xapi_activity_ignored_error("viewed:available badge list");
-    }
-    else if ( regex_search(details, match_details,
-			   regex("the user with id '([[:digit:]]+)' using enrolment method '(self|manual)' in the course with id '([[:digit:]]+)'\\.")))
-    {
-      //enrolled the user with id '356' using the enrolment method 'manual' in the course with id '2070'.
-      //enrolled the user with id '2199' using the enrolment method 'self' in the course with id '2070'.
-      activityType = "course";
-      tmp_id = match_details[1];
-      
-      if ( tmp_id != userid ) // in case user was unenrolled by some other user
-      {
-	stringstream target_user_homepage;
-	target_user_homepage << activityTypes["homepage"] << tmp_id;
-	string method = match_details[2];
-	
-	// actor was the (un)enroller, actual user that was (un)enrolled needs to be set as actor.
-	json target_user = {
-	  { "objectType", "Agent"},
-	  { "name", UserIDToUserName[tmp_id]}, // todo fix username here as well
-	  { "account",{}},
-	};
-	target_user["account"] = {
-	  {"name", userid }, 
-	  {"homePage", target_user_homepage.str()}
-	};
-	
-	// add (un)enroller to related context
-	extensions["http://id.tincanapi.com/extension/target"] = target_user;
-      }
-    }
-    else if ( regex_search(details, match_details,
-			   regex("content in the forum post with with id '([[:digit:]]+)' in the discussion '([[:digit:]]+)' located in the forum with course module id '([[:digit:]]+)\\.")))
-    {
-      activityType = "reply"; 
-      tmp_id = match_details[2];
-      postNumber = match_details[1];
-    }
-    else if ( regex_search(details, match_details,     // course, page, collaborate, etc.    
-			   regex("the '*([[:alnum:]]+)'*( activity)* with (course module id|id) '([[:digit:]]+)'.*")) )
-    {
-      activityType = match_details[1];
-      tmp_id = match_details[4];
-    }
-    else throw xapi_parsing_error("Cannot make sense of: " + details + " in '"+ description+ "'");
-  }
+  
   /* construct object id */
   auto it = activityTypes.find(activityType);
-  if ( it == activityTypes.end()) throw xapi_activity_type_not_supported_error(verbname+":"+activityType+"' with statement '"+details);
-  string object_id = it->second + tmp_id;
+  if ( it == activityTypes.end()) throw xapi_activity_type_not_supported_error(verbname+":"+activityType+"' with statement '"+description);
+  string object_id = it->second + activity_id;
   
   // handle special cases
   if ( it->first == "section" )
@@ -737,9 +581,9 @@ XAPI::ActivityEntry::ToXapiStatement()
     { "id", object_id },
     { "definition",
       {
-	/*{ "description", { "en-GB", ""}},*/
-	{ "type" , xapiActivity },
-	{ "interactionType", "other" }
+        /*{ "description", { "en-GB", ""}},*/
+        { "type" , xapiActivity },
+        { "interactionType", "other" }
       }
     }
   };
