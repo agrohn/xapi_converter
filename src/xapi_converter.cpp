@@ -18,8 +18,6 @@ using json = nlohmann::json;
 using namespace std;
 //https://nithinkk.wordpress.com/2017/03/16/learning-locker/
 ////////////////////////////////////////////////////////////////////////////////
-const int NUM_ARGUMENTS_WHEN_SENDING = 4;
-const int NUM_ARGUMENTS_WITHOUT_SENDING = 3;
 namespace po = boost::program_options;
 std::map<std::string,int> errorMessages;
 string throbber = "|/-\\|/-\\";
