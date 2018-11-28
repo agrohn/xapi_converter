@@ -47,7 +47,14 @@ namespace XAPI
     std::string gradeData;
     std::string learningLockerURL;
     std::string errorFile;
-
+    // base url for all activity ids URIs
+    std::string lmsBaseURL;
+    struct Login { 
+      std::string key;
+      std::string secret;
+    };
+    Login login;
+    
     int  clientBodyMaxSize{20000000}; 
     Context context;
     boost::program_options::variables_map vm;
