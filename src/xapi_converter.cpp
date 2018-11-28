@@ -57,7 +57,7 @@ namespace XAPI
   };
 }
 
-XAPI::Application::Application() : desc("Command-line tool for sending XAPI statements to learning locker from  Moodle logs\nReleased under GPLv3 - use at your own risk. \n\nPrerequisities:\n\tLearning locker client credentials must be in json format in data/login.json.\n\tSimple object { \"key\": \"\", \"secret\":\"\"}\n\nUsage:\n")
+XAPI::Application::Application() : desc("Command-line tool for sending XAPI statements to learning locker from  Moodle logs\nReleased under GPLv3 - use at your own risk. \n\nPrerequisities:\n\tLearning locker client credentials must be in json format in data/config.json.\n\tSimple object { \"login\": { \"key\": \"\", \"secret\":\"\"}, \"lms\" : { \"baseURL\" : \"\" }\n\nUsage:\n")
 {
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -410,16 +410,13 @@ XAPI::Application::SendStatements()
   // send XAPI statements in POST
   if ( learningLockerURL.size() > 0 )
   {
-    ifstream loginDetails("data/login.json");
-    json login;
-    loginDetails >> login;
+    
+
     //https://stackoverflow.com/questions/25852551/how-to-add-basic-authentication-header-to-webrequest#25852562
     string tmp;
-    string key = login["key"];
-    string secret = login["secret"];
     {
       stringstream ss;
-      ss << key << ":" << secret;
+      ss << login.key << ":" << login.secret;
       tmp = ss.str();
     }
     string auth = "Basic " + base64_encode(reinterpret_cast<const unsigned char *>(tmp.c_str()), tmp.size());
@@ -581,11 +578,26 @@ int main( int argc, char **argv)
     
     cout << "course url: \"" << XAPI::StatementFactory::course_id << "\"\n";
     cout << "course name: \"" << XAPI::StatementFactory::course_name << "\"\n";
+    // parse all config
+    ifstream configDetails("data/config.json");
+    json config;
+    configDetails >> config;
+    
+    app.login.key = config["login"]["key"];
+    app.login.secret = config["login"]["secret"];
+    
+    // update URL prefices
+    app.lmsBaseURL = config["lms"]["baseURL"];
+    for(auto & a : activityTypes )
+    {
+      activityTypes[a.first] = app.lmsBaseURL + a.second;
+    }
+    
     app.UpdateThrobber();
     if ( app.HasLogData())
     {
 	  if ( app.IsLogDataJSON())	app.ParseJSONEventLog();
-	  else						app.ParseCSVEventLog();
+	  else				app.ParseCSVEventLog();
 	}
     if ( app.HasGradeData()) app.ParseGradeLog();
     if ( app.ShouldPrint())

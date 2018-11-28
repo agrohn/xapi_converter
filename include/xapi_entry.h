@@ -7,7 +7,7 @@
 #include <json.hpp>
 ////////////////////////////////////////////////////////////////////////////////
 extern const std::map<std::string, std::string> supportedVerbs;
-extern const std::map<std::string, std::string> activityTypes;
+extern std::map<std::string, std::string> activityTypes;
 extern std::map<std::string, std::string> TaskNameToTaskID;
 extern std::map<std::string, std::string> UserNameToUserID;
 ////////////////////////////////////////////////////////////////////////////////
