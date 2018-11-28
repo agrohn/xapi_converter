@@ -13,7 +13,7 @@ extern std::map<std::string, std::string> UserNameToUserID;
 ////////////////////////////////////////////////////////////////////////////////
 namespace XAPI
 {
-  const std::string HOMEPAGE_URL_PREFIX = "https://moodle.karelia.fi/user/profile.php?id=";
+
   class Entry
   {
   protected:

@@ -64,6 +64,7 @@ std::map<std::string, std::string> activityTypes = {
   { "user", "/user/profile.php?id="},
   { "post", "/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
   { "reply", "/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
+  { "homepage", "/user/profile.php?id="} // not really activity, just helps in creating user home page addresses.
 };
 // some heuristics to match completion state updates 
 const std::map<std::string, std::string> contextModuleLocaleToActivityType = {

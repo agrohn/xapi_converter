@@ -145,7 +145,7 @@ XAPI::ActivityEntry::ToXapiStatement()
     details = customDetails.str();
 
     stringstream	homepage;
-    homepage << HOMEPAGE_URL_PREFIX << userid;
+    homepage << activityTypes["homepage"] << userid;
     actor = {
       {"objectType", "Agent"},
       {"name", UserNameToUserID[username]},
@@ -163,7 +163,7 @@ XAPI::ActivityEntry::ToXapiStatement()
     // actual user completing a task
     userid = anonymizer(match[1]);
     stringstream	homepage;
-    homepage << HOMEPAGE_URL_PREFIX << userid;
+    homepage << activityTypes["homepage"] << userid;
     verbname = match[5];
     details = match[6];
     //cerr << "matches:\n";
@@ -399,7 +399,7 @@ XAPI::ActivityEntry::ToXapiStatement()
       string quiz_id = match_details[3];
       string target_userid = anonymizer(match_details[2]);
       stringstream target_user_homepage;
-      target_user_homepage << HOMEPAGE_URL_PREFIX << target_userid;
+      target_user_homepage << activityTypes["homepage"] << target_userid;
 
 
       
@@ -470,7 +470,7 @@ XAPI::ActivityEntry::ToXapiStatement()
       if ( tmp_id != userid ) // in case user was unenrolled by some other user
       {
 	stringstream target_user_homepage;
-	target_user_homepage << HOMEPAGE_URL_PREFIX << tmp_id;
+	target_user_homepage << activityTypes["homepage"] << tmp_id;
 	string method = match_details[2];
 	
 	// actor was the (un)enroller, actual user that was (un)enrolled needs to be set as actor.

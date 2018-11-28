@@ -133,7 +133,7 @@ XAPI::GradeEntry::ToXapiStatement()
   }
   stringstream	homepage;
   string userid = UserNameToUserID[username];
-  homepage << HOMEPAGE_URL_PREFIX << userid;
+  homepage << activityTypes["homepage"] << userid;
 
   // define user receiving a score
   actor = {
