@@ -7,6 +7,22 @@ namespace XAPI
 {
   class Anonymizer : public std::map<std::string, std::string>
   {
+  private:
+    std::string get_random_string(int length = 32)
+    {
+      const char alphanum[] =
+      "0123456789"
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      "abcdefghijklmnopqrstuvwxyz";
+      size_t alphanumLength = sizeof(alphanum) - 1;
+      std::stringstream ss;
+      
+      for( size_t i=0;i<length;i++)
+      {
+	ss << alphanum[rand() % alphanumLength];
+      }
+      return ss.str();
+    }
   public:
     bool enabled{false};
     Anonymizer() {    srand(time(NULL));   }
@@ -18,9 +34,7 @@ namespace XAPI
 	if ( enabled )
 	{
 	  // create random string for usernaeme
-	  std::stringstream ss;
-	  ss << "user" << rand()%10000;
-	  return insert( std::pair<std::string,std::string>(key, ss.str())).first->second;
+	  return insert( std::pair<std::string,std::string>(key, get_random_string())).first->second;
 	}
 	else
 	{
