@@ -139,12 +139,195 @@ XAPI::ActivityEntry::ToXapiStatement()
     { "contextActivities", grouping }
   };
 
- 
-  
-  smatch match;
+   smatch match;
   string verbname;
   string details;
-  //////////
+
+	/* 
+"The user with id '' created the 'collaborate' activity with course module id ''."
+"The user with id '' deleted the 'collaborate' activity with course module id ''."
+"The user with id '' updated the 'collaborate' activity with course module id ''."
+"The user with id '' created the 'quiz' activity with course module id ''."
+"The user with id '' deleted the 'quiz' activity with course module id ''."
+"The user with id '' updated the 'page' activity with course module id ''."
+"The user with id '' viewed the 'page' activity with course module id ''.
+"The user with id '' created the 'page' activity with course module id ''."
+"The user with id '' viewed the 'quiz' activity with course module id ''."
+"The user with id '' created the 'resource' activity with course module id ''."
+"The user with id '' deleted the 'resource' activity with course module id ''."
+"The user with id '' updated the 'resource' activity with course module id ''."
+"The user with id '' viewed the 'resource' activity with course module id ''."
+"The user with id '' created the 'url' activity with course module id ''."
+"The user with id '' updated the 'url' activity with course module id ''."
+"The user with id '' viewed the 'url' activity with course module id ''."
+"The user with id '' updated the 'forum' activity with course module id ''."
+"The user with id '' viewed the 'forum' activity with course module id ''."
+"The user with id '' viewed the 'hsuforum' activity with course module id ''."
+"The user with id '' created the 'forum' activity with course module id ''."
+"The user with id '' created the 'lti' activity with course module id ''."
+"The user with id '' viewed the 'lti' activity with course module id ''."
+"The user with id '' created the 'hvp' activity with course module id ''."
+"The user with id '' updated the 'hvp' activity with course module id ''."
+"The user with id '' viewed the 'hvp' activity with course module id ''."
+"The user with id '' viewed the 'book' activity with course module id ''."
+"The user with id '' created the 'label' activity with course module id ''."
+"The user with id '' updated the 'label' activity with course module id ''."
+	*/
+	
+  if ( regex_search(description, match,
+		    regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the '(quiz|page|collaborate|resource|url|forum|hsuforum|lti|hvp|book|label)' activity with course module id '([[:digit:]]+)'\\.")) )
+  {
+		
+	}
+	/*
+"The user with id '' has searched the course with id '' for forum posts containing """"."
+"The user with id '' has searched the course with id '' for forum posts containing ""Kuuntelu""."
+"The user with id '' has searched the course with id '' for forum posts containing ""oona""."
+"The user with id '' has searched the course with id '' for forum posts containing ""opintojaksopalaute""."
+"The user with id '' updated the course with id ''.
+"The user with id '' viewed the course information for the course with id ''."
+"The user with id '' viewed the course with id ''."
+	*/
+	else if ( regex_search(description, match,
+		    regex("[Tt]he user with id '([[:digit:]]+)'( has)? ([[:alnum:]]+) the course (information for the course )?with id '([[:digit:]]+)'.*")) )
+  {
+
+	}
+	/*
+		"The user with id '' added the comment with id '' to the submission with id '' for the assignment with course module id ''."
+		"The user with id '' deleted the comment with id '' from the submission with id '' for the assignment with course module id ''."
+	*/
+	else if ( regex_search(description, match,
+												regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the comment with id '([[:digit:]]+)' (to|from) the submission with id '([[:digit:]]+)' for the assignment with course module id '([[:digit:]]+)'\\.")) )
+	{
+	 //http://adlnet.gov/expapi/verbs/commented
+	}
+/*
+		"The user with id '' has submitted the submission with id '' for the assignment with course module id ''."
+		"The user with id '' has uploaded a file to the submission with id '' in the assignment activity with course module id ''."		
+
+		"The user with id '' viewed their submission for the assignment with course module id ''."
+		"The user with id '' created a file submission and uploaded '' file/s in the assignment with course module id ''."
+		"The user with id '' updated a file submission and uploaded '' file/s in the assignment with course module id ''."
+
+
+		"The user with id '' has graded the submission '' for the user with id '' for the assignment with course module id ''."
+		"The user with id '' has viewed the submission status page for the assignment with course module id ''."
+		"The user with id '' viewed the grading form for the user with id '' for the assignment with course module id ''."
+		"The user with id '' viewed the grading table for the assignment with course module id ''."
+
+	*/
+	
+	else if ( regex_search(description, match,
+												 regex("[Tt]he user with id '([[:digit:]]+)'( has)? ([[:alnum:]]+) (the|a|their) (.*)the assignment( activity)? with course module id '([[:digit:]]+)'\\.")) )
+	{
+		// assignment submission
+	}
+	/*
+		"The user with id '' created section number '' for the course with id ''"
+		"The user with id '' updated section number '' for the course with id ''"
+		"The user with id '' viewed the section number '' of the course with id ''."
+	*/
+	 else if ( regex_search(description, match,
+													regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) section number '([[:digit:]]+)' for the course with id '([[:digit:]]+)'\\.")))
+	 {
+		 // section number
+	 }
+	/*
+		"The user with id '' has had their attempt with id '' marked as abandoned for the quiz with course module id ''."
+		"The user with id '' has started the attempt with id '' for the quiz with course module id ''."
+		"The user with id '' has submitted the attempt with id '' for the quiz with course module id ''."
+	*/
+	 else if ( regex_search(description, match,
+													regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the(ir)? attempt with id '([[:digit:]]+)' ([[:alnum:]]+) for the quiz with course module id '([[:digit:]]+)'\\.")) )
+	 {
+		 
+	 }
+	/*
+		
+		"The user with id '' has had their attempt with id '' previewed by the user with id '' for the quiz with course module id ''."
+		"The user with id '' has had their attempt with id '' reviewed by the user with id '' for the quiz with course module id ''."
+		"The user with id '' has viewed the attempt with id '' belonging to the user with id '' for the quiz with course module id ''."
+		"The user with id '' has viewed the summary for the attempt with id '' belonging to the user with id '' for the quiz with course module id ''."
+	*/
+	 else if ( regex_search(description, match,
+													regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the(ir?) (summary for )?attempt with id '([[:digit:]]+)' ([[:alnum:]]+) (by|to) the user with id '([[:digit:]]+)' for the quiz with course module id '([[:digit:]]+)'\\.")) )
+	 {
+		 // preview, review, view attempt (summary)
+	 }
+	/* 
+		 "The user with id '' has printed the book with course module id ''."
+	*/
+	 else if ( regex_search(description, match,
+													regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the book with course module id '([[:digit:]]+)'\\.")) )
+	 {
+		 
+	 }
+	/*
+		"The user with id '' viewed the chapter with id '' for the book with course module id ''."
+	*/
+	 else if ( regex_search(description, match,
+													regex("[Tt]he user with id '([[:digit:]]+)' viewed the chapter with id '([[:digit:]]+)' for the book with course module id '([[:digit:]]+)'\\.")) )
+	 {
+		 //chapter
+	 }
+
+	/*
+"The user with id '' has created the discussion with id '' in the forum with course module id ''."
+"The user with id '' has created the discussion with id '' in the forum with the course module id ''."
+"The user with id '' has viewed the discussion with id '' in the forum with course module id ''."
+"The user with id '' has viewed the discussion with id '' in the forum with the course module id ''."
+
+	 */
+		 else if ( regex_search(description, match,
+														regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the discussion with id '([[:digit:]]+)' in the forum with (the )?course module id '([[:digit:]]+)'\\.")) )
+		 {
+			 //discussion
+		 }
+	/*
+		"The user with id '' enrolled the user with id '' using the enrolment method 'manual' in the course with id ''."
+		"The user with id '' enrolled the user with id '' using the enrolment method 'self' in the course with id ''."
+		"The user with id '' unenrolled the user with id '' using the enrolment method 'self' from the course with id ''."
+	*/
+		 else if ( regex_search(description, match,
+														regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the user with id '([[:digit:]]+)' using the enrolment method '(self|manual)' (in|from) the course module id '([[:digit:]]+)'\\.")) )
+		 {
+			 // user unenrolled, enrolled
+		 }
+	/*
+		"The user with id '' subscribed the user with id '' to the discussion with id '' in the forum with the course module id ''."
+	*/
+		 else if ( regex_search(description, match,
+														regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the user with id '([[:digit:]]+)' to the discussion[[:blank:]]+with id '([[:digit:]]+)' in the forum with the course module id '([[:digit:]]+)'\\.")) )
+		 {
+			 // subscribed user to discussion
+		 }
+	/*
+		"The user with id '' subscribed the user with id '' to the forum with course module id ''."
+	*/
+		 else if ( regex_search(description, match,
+														regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the user with id '([[:digit:]]+)' to the forum with course module id '([[:digit:]]+)'.")) )
+		 {
+			 // subscribed a user to forum
+		 }
+	/*
+		"The user with id '' has created the post with id '' in the discussion with id '' in the forum with course module id ''."
+		"The user with id '' has created the post with id '' in the discussion with id '' in the forum with the course module id ''."
+		"The user with id '' has updated the post with id '' in the discussion with id '' in the forum with course module id ''."
+		"The user with id '' has posted content in the forum post with id '' in the discussion '' located in the forum with course module id ''." // REPLY
+		"The user with id '' has posted content in the forum post with id '' in the discussion '' located in the forum with the course module id ''." // REPLY
+
+	*/
+		 else if ( regex_search(description, match,
+														regex("[Tt]he user with id '([[:digit:]]+)' has (created|posted content|updated) (in )?(the )?(forum )?post with id '([[:digit:]]+)' in the discussion (with id )?'([[:digit:]]+)' (located )?in the forum with (the )?course module id '([[:digit:]]+)'\\.")) )
+		 {
+			 
+		 }
+
+	// ignored
+	//"The user with id '' restored old course with id '' to a new course with id ''."
+	
+	//////////
   // This entry has differs from general form; we customize it here so we can reuse existing code.
   if ( regex_search(description, match,
                     regex("[Tt]he user with id '([[:digit:]]+)' has had their attempt with id '([[:digit:]]+)' ([[:alnum:]]+) by the user with id '([[:digit:]])+' for the quiz with course module id '([[:digit:]]+)'\\.")) )
