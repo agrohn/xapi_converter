@@ -36,10 +36,10 @@ const std::map<std::string, std::string> supportedVerbs = {
   { "unenrolled", "http://activitystrea.ms/schema/1.0/remove"},
   { "updated", "http://activitystrea.ms/schema/1.0/update"},
   { "viewed","http://id.tincanapi.com/verb/viewed"},
+  { "completed", "http://activitystrea.ms/schema/1.0/complete"},
   { "previewed", ""}, // ignore previews
   { "printed", ""}, // ignore book prints
-  { "restored", ""}, // ignore course restores to a new course
-  {}
+  { "restored", ""} // ignore course restores to a new course
 };
 
 // supported activity target types
@@ -94,7 +94,8 @@ const std::map<std::string, std::string> moodleXapiActivity = {
   { "chapter", "http://id.tincanapi.com/activitytype/chapter" },
   { "discussion", "http://id.tincanapi.com/activitytype/discussion" },
   { "user", "http://id.tincanapi.com/activitytype/user-profile" },
-  { "post", "http://id.tincanapi.com/activitytype/forum-reply"}
+  { "post", "http://id.tincanapi.com/activitytype/forum-reply"},
+  { "reply", "http://id.tincanapi.com/activitytype/forum-reply"}
 };
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::StatementFactory::StatementFactory()

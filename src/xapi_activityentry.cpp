@@ -151,7 +151,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   string discussionNumber; // required for discussion posts
   string attemptNumber; // for submissions
   string userWhoIsProcessed; // target user
-
+  
   /*
     "The user with id '' created the '' activity with course module id ''."
   */
@@ -165,6 +165,29 @@ XAPI::ActivityEntry::ToXapiStatement()
     activityType = match[3];
     activity_id = match[4];
     
+  }
+  /*
+    "The user with id '' created section number '' for the course with id ''"
+    "The user with id '' updated section number '' for the course with id ''"
+    "The user with id '' viewed the section number '' of the course with id ''."
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) (the )?section number '([[:digit:]]+)' (for|of) the course with id '([[:digit:]]+)'\\.?")))
+  {
+    userid = anonymizer(match[1]);
+    verbname = match[2];
+    activityType = "section";
+    sectionNumber = match[4];
+    activity_id = match[5];
+  }
+  // 'The user with id '' viewed the profile for the user with id '' in the course with id ''.
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' viewed the profile for the user with id '([[:digit:]]+)' in the course with id '([[:digit:]]+)'\\.")) )
+  {
+    userid = anonymizer(match[1]);
+    verbname = "viewed";
+    activityType = "user";
+    activity_id = anonymizer(match[2]);
   }
   /*
     "The user with id '' has searched the course with id '' for forum posts containing """"."
@@ -231,20 +254,6 @@ XAPI::ActivityEntry::ToXapiStatement()
   
   }
   /*
-    "The user with id '' created section number '' for the course with id ''"
-    "The user with id '' updated section number '' for the course with id ''"
-    "The user with id '' viewed the section number '' of the course with id ''."
-  */
-  else if ( regex_search(description, match,
-                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) section number '([[:digit:]]+)' for the course with id '([[:digit:]]+)'\\.")))
-  {
-    userid = anonymizer(match[1]);
-    verbname = match[2];
-    activityType = "section";
-    sectionNumber = match[3];
-    activity_id = match[4];
-  }
-  /*
     "The user with id '' has had their attempt with id '' marked as abandoned for the quiz with course module id ''."
     "The user with id '' has started the attempt with id '' for the quiz with course module id ''."
     "The user with id '' has submitted the attempt with id '' for the quiz with course module id ''."
@@ -268,7 +277,7 @@ XAPI::ActivityEntry::ToXapiStatement()
     "The user with id '' has viewed the summary for the attempt with id '' belonging to the user with id '' for the quiz with course module id ''."
   */
   else if ( regex_search(description, match,
-                         regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the(ir?) (summary for )?attempt with id '([[:digit:]]+)' ([[:alnum:]]+) (by|to) the user with id '([[:digit:]]+)' for the quiz with course module id '([[:digit:]]+)'\\.")) )
+                         regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the(ir)? (summary for the )?attempt with id '([[:digit:]]+)' ([[:alnum:]]+) (by|to) the user with id '([[:digit:]]+)' for the quiz with course module id '([[:digit:]]+)'\\.")) )
   {
     // preview, review, view attempt (summary)
     userid = anonymizer(match[1]);
@@ -453,7 +462,10 @@ XAPI::ActivityEntry::ToXapiStatement()
     auto it = contextModuleLocaleToActivityType.find(context_module_locale_specific);
     if ( it != contextModuleLocaleToActivityType.end())
     {
+      userid = anonymizer(match[3]); // target user "completes" module
       activityType = it->second;
+      verbname = "completed";
+      activity_id = match[2];
     }
     else
     {
@@ -463,14 +475,13 @@ XAPI::ActivityEntry::ToXapiStatement()
       
     // We also assume that you update completion status only to "completed" one.
   }
-  
   else if ( regex_search(description, match, regex("User ([[:digit:]]+) (updated|created) the question ([[:digit:]]+)\\.")))
   {
     // we cannot create proper log entry using this kind of statement moodle logs give us.
     throw xapi_activity_ignored_error(verbname+":question (question id without proper course module id)");
   }
   else if ( regex_search(description, match,
-                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the grade with id '([[:digit:]]+)' for the user with id '([[:digit:]]+)' for the grade item with id '([[:digit:]]+)'") ))
+                         regex("[Tt]he user with id '(-?[[:digit:]]+)' ([[:alnum:]]+) the grade with id '([[:digit:]]+)' for the user with id '([[:digit:]]+)' for the grade item with id '([[:digit:]]+)'\\.") ))
   {
     throw xapi_activity_ignored_error("updated/deleted:grade");
   }
@@ -479,8 +490,9 @@ XAPI::ActivityEntry::ToXapiStatement()
   {
     throw xapi_activity_ignored_error("updated:event/instance");
   }
+  
   else if ( regex_search(description, match,
-                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the (user|grader|history|overview)( log| statistics)* report .*")))
+                         regex("[Tt]he user with id '([[:digit:]]+)' (has )?([[:alnum:]]+) the (user|grader|history|overview|statistics|outline activity|log)( log| statistics)? report .*")))
   {
     throw xapi_activity_ignored_error("viewed:(log/statistics/history/overview/grade)report");
   }
@@ -489,12 +501,43 @@ XAPI::ActivityEntry::ToXapiStatement()
   {
     throw xapi_activity_ignored_error("viewed:available badge list");
   }
+  else if ( regex_search(description, match,
+			 regex("[Tt]he user with id '([[:digit:]]+)' viewed the report '([[:alnum:]]+)' for the quiz with course module id '([[:digit:]]+)'\\.")))
+  {
+    throw xapi_activity_ignored_error("viewed:report");
+  }
+  else if ( regex_search(description, match,
+			 regex("[Tt]he user with id '([[:digit:]]+)' viewed the (recent activity|report|edit page|Open Grader|instance list|list of users|list of resources) .*")))
+  {
+    throw xapi_activity_ignored_error("viewed:(various reports)");
+  }
+  else if ( regex_search(description, match,
+			 regex("[Tt]he user with id '([[:digit:]]+)' (un)?assigned the role with id '([[:digit:]]+)' (to|from) the user with id '([[:digit:]]+)'\\.")))
+  {
+    throw xapi_activity_ignored_error("(un)assigned:(role)");
+  }
+  else if ( regex_search(description, match,
+			 regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) (a )?(backup|grades|old course).*")))
+  {
+    string tmp = match[2];
+    throw xapi_activity_ignored_error(tmp+":(backup/grades/old course)");
+  }
+  else
+  {
+    // final fallback
+    throw xapi_parsing_error("Cannot make sense of: '"+ description+ "'");
+  }
   // ignored
+  // The user with id '' assigned the role with id '' to the user with id ''.
   //"The user with id '' restored old course with id '' to a new course with id ''."
-  //"The user with id '' has viewed the submission status page for the assignment with course module id ''."
+  // The user with id '' has viewed the submission status page for the assignment with course module id ''.
+  // The user with id '' viewed the list of users in the course with id ''
+  // The user with id '' viewed the log report for the course with id ''
   //  "The user with id '' viewed the grading form for the user with id '' for the assignment with course module id ''."
   //  "The user with id '' viewed the grading table for the assignment with course module id ''."
-
+  // The user with id '' viewed the edit page for the quiz with course module id ''.
+  // The user with id '' viewed the list of users in the course with id ''.
+  
   if ( username.empty() ) throw xapi_parsing_error("no username found for: " + description);
   
   UserNameToUserID[username] = userid;
@@ -525,8 +568,10 @@ XAPI::ActivityEntry::ToXapiStatement()
 
     string verb_xapi_id = it->second;
     if ( verb_xapi_id.length() == 0 )
-      throw xapi_verb_not_supported_error(verbname+"(ignored)");
-
+    {
+      if ( verbname.length() == 0 ) throw xapi_verb_not_supported_error(verbname+"(ignored)" + description);
+      else throw xapi_verb_not_supported_error(verbname+"(ignored)");
+    }
     verb = {
       {"id", verb_xapi_id },
       {"display",
