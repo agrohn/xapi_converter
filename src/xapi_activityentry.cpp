@@ -447,9 +447,14 @@ XAPI::ActivityEntry::ToXapiStatement()
     postNumber = match[6];
     discussionNumber = match[8];
     activity_id = match[8];
+
+    auto activityIt = activityTypes.find("forum");
+    if ( activityIt == activityTypes.end()) throw xapi_activity_type_not_supported_error("forum");
+    string tmp = activityIt->second + (string)match[11];
+
     // mark forum as parent 
     activityContext["contextActivities"]["parent"] = {
-      { "id", match[11] }
+      { "id", tmp }
     };
        
   }
