@@ -34,8 +34,8 @@ namespace XAPI
     Progress( int c, int t ) : current(std::min(c,t)), total(t) {}
      operator std::string() {
       stringstream ss;
-
-      ss << current/(total/100);
+      if ( total == 0 ) ss << "0";
+      else ss << (int)( (current/(float)total)*100.0);
       return ss.str();
     }
     Progress operator++(int value)
