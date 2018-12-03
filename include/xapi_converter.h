@@ -5,7 +5,7 @@
 #include <string>
 #include <algorithm>    
 #include <iterator>     
-
+#include <iomanip>
 
 
 
@@ -21,6 +21,41 @@ std::string base64_encode(const unsigned char *src, size_t len);
 
 namespace XAPI
 {
+
+  class Progress
+  {
+  private:
+    int current;
+    int total;
+  public:
+
+    Progress( int c, int t ) : current(std::min(c,t)), total(t) {}
+    operator std::string() {
+      std::stringstream ss;
+      if ( total == 0 ) ss << std::setw(3) << "0";
+      else ss << std::setw(3) << (int)( (current/(float)total)*100.0);
+      return ss.str();
+    }
+    Progress operator++(int value)
+    {
+      current = std::min(++current,total);
+      return Progress(current, total);
+    }
+    Progress & operator+=(int value)
+    {
+      current = std::min(current+value,total);
+      return *this;
+    }
+    void ResetCurrent()
+    {
+      current = 0;
+    }
+    void SetTotal(int t)
+    {
+      total = t;
+    }
+  };
+  
   struct Context
   {
     std::string courseurl;
@@ -31,14 +66,47 @@ namespace XAPI
   {
     size_t statementsInTotal{0};
     size_t numBatches{0};
+
     std::map<int,size_t> batchAndStatementsCount;
+  };
+  enum BatchState { kIdle, kReadyForSending, kSending, kSent, kNumBatchStates };
+  struct Batch
+  {
+    size_t start {0}; ///< batch start location in statements array.
+    size_t end {0}; ///<batch end location in statements array.
+    size_t size{0}; ///< batch size in bytes.
+    BatchState state{XAPI::kIdle}; ///< Current batch state.
+    std::stringstream contents; ///< Batch contents to send.
+    Progress progress;///< Batch progress status.
+    
+    Batch( ) : progress(0,0) {}
+
+    Batch & operator=( const Batch & other ) 
+    {
+      start = other.start;
+      end = other.end;
+      size = other.size;
+      state = other.state;
+      progress = other.progress;
+      contents.str(other.contents.str());
+    }
+    
+    Batch( const Batch & other ) : progress(0,0)
+    {
+      start = other.start;
+      end = other.end;
+      size = other.size;
+      state = other.state;
+      progress = other.progress;
+      contents.str(other.contents.str());
+    }
+
   };
   
   class Application
   {
   private:
-    void CreateBatchesToSend();
-    std::vector<std::string> batches;
+    std::vector<Batch> batches;
     Statistics stats;
   public:
     int throbberState;
@@ -72,6 +140,8 @@ namespace XAPI
 	void ParseJSONEventLog();
     void ParseGradeLog();
 
+    void ComputeBatchSizes();
+    void CreateBatches();
     void SendStatements();
     void WriteStatementFiles();
     bool HasGradeData() const;
@@ -82,7 +152,9 @@ namespace XAPI
     bool ShouldWrite() const;
     std::string GetStatementsJSON();
     void UpdateThrobber(const std::string & msg = "");
+    void DisplayBatchStates();
     void LogErrors();
     void LogStats();
+    
   };
 }
