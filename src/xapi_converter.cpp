@@ -71,8 +71,9 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
   ("host", po::value<string>(), "<addr> learning locker server hostname or ip. If not defined, performs dry run.")
   ("errorlog", po::value<string>(), "<errorlog> where error information is printed.")
+  ("write", "statements json files are written to local directory.")
   ("anonymize", "Should user data be anonymized.")
-  ("print", "statements json is printed to stdout");
+  ("print", "statements json is printed to stdout.");
   throbberState = 0;
 
 }
@@ -117,6 +118,7 @@ XAPI::Application::ParseArguments( int argc, char **argv )
     errorFile = vm["errorlog"].as<string>();
   
   print = vm.count("print") > 0;
+  write = vm.count("write") > 0;
   anonymize = vm.count("anonymize") > 0;
   anonymizer.enabled = anonymize;
   
@@ -514,6 +516,32 @@ XAPI::Application::SendStatements()
 
 }
 ////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::Application::WriteStatementFiles()
+{
+  CreateBatchesToSend();
+  int count = 0;
+  for( auto & batch : batches )
+  {
+    
+    try {
+      stringstream ss;
+      ss << "Writing batch " <<  count << " (" << batch.length() << " bytes)...";
+      stringstream name;
+      name << "batch_" << count << ".json";
+      UpdateThrobber(ss.str());
+      ofstream out(name.str());
+      if ( !out ) throw runtime_error("Could not open file: '" + name.str() + "'");
+      out << batch;
+      count++;
+    }
+    catch ( std::exception & e ) {
+      std::cout << "error " << e.what() << std::endl;
+    }
+  }
+  
+}
+////////////////////////////////////////////////////////////////////////////////
 bool
 XAPI::Application::HasGradeData() const
 {
@@ -540,6 +568,11 @@ bool
 XAPI::Application::ShouldPrint() const
 {
   return print;
+}
+bool
+XAPI::Application::ShouldWrite() const
+{
+  return write;
 }
 void
 XAPI::Application::UpdateThrobber(const std::string & msg )
@@ -619,6 +652,12 @@ int main( int argc, char **argv)
     {
       cout << app.GetStatementsJSON() << "\n";
     }
+    
+    if ( app.ShouldWrite())
+    {
+      app.WriteStatementFiles();
+    }
+    
     if ( app.IsDryRun())
       cout << "alright, dry run - not sending statements.\n";
     else

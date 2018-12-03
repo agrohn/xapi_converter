@@ -61,6 +61,7 @@ namespace XAPI
     boost::program_options::options_description desc;
     std::vector<std::string> statements;
     bool print{false};
+    bool write{false};
     bool anonymize{false};
     Application();
     virtual ~Application();
@@ -72,11 +73,13 @@ namespace XAPI
     void ParseGradeLog();
 
     void SendStatements();
+    void WriteStatementFiles();
     bool HasGradeData() const;
     bool HasLogData() const;
     bool IsLogDataJSON() const;
     bool IsDryRun() const;
     bool ShouldPrint() const;
+    bool ShouldWrite() const;
     std::string GetStatementsJSON();
     void UpdateThrobber(const std::string & msg = "");
     void LogErrors();
