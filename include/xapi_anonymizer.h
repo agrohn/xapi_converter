@@ -8,7 +8,7 @@ namespace XAPI
   class Anonymizer : public std::map<std::string, std::string>
   {
   private:
-    std::string get_random_string(int length = 32)
+    std::string get_random_string(size_t length = 32)
     {
       const char alphanum[] =
       "0123456789"

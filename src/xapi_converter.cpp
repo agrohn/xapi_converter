@@ -386,7 +386,7 @@ XAPI::Application::DisplayBatchStates()
 {
   stringstream ss;
   ss << "Creating " << batches.size() << " batches ";
-  for( int b=0;b<batches.size();b++)
+  for( size_t b=0;b<batches.size();b++)
   {
     ss <<  " [" << std::string(batches[b].progress)+"%]";
   }
