@@ -25,8 +25,8 @@ namespace XAPI
   class Progress
   {
   private:
-    int current;
-    int total;
+    int current{0};
+    int total{0};
   public:
 
     Progress( int c, int t ) : current(std::min(c,t)), total(t) {}
@@ -38,7 +38,7 @@ namespace XAPI
     }
     Progress operator++(int value)
     {
-      current = std::min(++current,total);
+      current = std::min(current+value,total);
       return Progress(current, total);
     }
     Progress & operator+=(int value)
@@ -127,7 +127,7 @@ namespace XAPI
     };
     Login login;
     
-    int  clientBodyMaxSize{20000000}; 
+    size_t  clientBodyMaxSize{20000000}; 
     Context context;
     boost::program_options::variables_map vm;
     boost::program_options::options_description desc;
