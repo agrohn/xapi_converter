@@ -38,7 +38,8 @@ namespace XAPI
     }
     Progress operator++(int value)
     {
-      current = std::min(current+value,total);
+      current++;
+      current = std::min(current,total);
       return Progress(current, total);
     }
     Progress & operator+=(int value)
