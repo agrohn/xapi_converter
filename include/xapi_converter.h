@@ -81,14 +81,18 @@ namespace XAPI
     
     Batch( ) : progress(0,0) {}
 
-    Batch & operator=( const Batch & other ) 
+    Batch & operator=( const Batch && other ) 
     {
-      start = other.start;
-      end = other.end;
-      size = other.size;
-      state = other.state;
-      progress = other.progress;
-      contents.str(other.contents.str());
+      if ( this != &other )
+      {
+	start = other.start;
+	end = other.end;
+	size = other.size;
+	state = other.state;
+	progress = other.progress;
+	contents.str(other.contents.str());
+      }
+      return *this;
     }
     
     Batch( const Batch & other ) : progress(0,0)
