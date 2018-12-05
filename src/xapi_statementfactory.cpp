@@ -19,6 +19,7 @@ const std::map<std::string, std::string> supportedVerbs = {
   { "created","http://activitystrea.ms/schema/1.0/create"},
   { "deleted","http://activitystrea.ms/schema/1.0/delete"},
   { "enrolled","http://activitystrea.ms/schema/1.0/join"},
+  { "commented", "http://adlnet.gov/expapi/verbs/commented" },
   /*{ "ended", ""}, */
   { "exported", ""}, // ignore grade exports
   /* { "graded", ""},*/
@@ -40,6 +41,7 @@ const std::map<std::string, std::string> supportedVerbs = {
   { "previewed", ""}, // ignore previews
   { "printed", ""}, // ignore book prints
   { "restored", ""} // ignore course restores to a new course
+
 };
 
 // supported activity target types
@@ -57,21 +59,23 @@ std::map<std::string, std::string> activityTypes = {
   { "lesson", "/mod/lesson/view.php?id=" },
   { "section", "/course/view.php?id=" }, // needs to add also #section-<NUMBER>
   { "hvp", "/mod/hvp/view.php?id=" },
-  { "attempt", "/mod/quiz/review.php?attempt=" },
+  { "attempt", "/mod/quiz/review.php?attempt=" }, // attempts are for quizzes
+  { "submission", "/mod/assign/view.php?id=" }, // submissions are for assignments, needs to add  &userid=<USER ID>. Extensions will hold unique moodle id for submission.
   { "book", "/mod/book/view.php?id="},
   { "chapter", "/mod/book/view.php?id="}, // needs to add also &chapterid=<NUMBER>
   { "discussion", "/mod/forum/discuss.php?d="},
   { "user", "/user/profile.php?id="},
   { "post", "/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
   { "reply", "/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
-  { "homepage", "/user/profile.php?id="} // not really activity, just helps in creating user home page addresses.
+  { "homepage", "/user/profile.php?id="}, // not really activity, just helps in creating user home page addresses.
+  { "label", "https://moodle.karelia.fi/course/modedit.php?update=" } // unique ids for entire site labels, it seems
 };
 // some heuristics to match completion state updates 
 const std::map<std::string, std::string> contextModuleLocaleToActivityType = {
   { "Sivu",       "page" },
   { "Tentti",      "quiz"},
   { "H5P",         "hvp" },
-  { "Ohjeteksti", "course"} // Since it is pretty impossible to provide a link to specific label, we do it with course.
+  { "Ohjeteksti", "label"} 
 };
 
 const std::map<std::string, std::string> moodleXapiActivity = {
@@ -95,7 +99,8 @@ const std::map<std::string, std::string> moodleXapiActivity = {
   { "discussion", "http://id.tincanapi.com/activitytype/discussion" },
   { "user", "http://id.tincanapi.com/activitytype/user-profile" },
   { "post", "http://id.tincanapi.com/activitytype/forum-reply"},
-  { "reply", "http://id.tincanapi.com/activitytype/forum-reply"}
+  { "reply", "http://id.tincanapi.com/activitytype/forum-reply"},
+  { "label", "http://activitystrea.ms/schema/1.0/note"}
 };
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::StatementFactory::StatementFactory()

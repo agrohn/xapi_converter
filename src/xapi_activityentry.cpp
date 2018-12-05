@@ -149,13 +149,13 @@ XAPI::ActivityEntry::ToXapiStatement()
   string chapterNumber; // required only for book chapters
   string postNumber;    // required for discussion posts
   string discussionNumber; // required for discussion posts
-  string attemptNumber; // for submissions
+  string attemptNumber; // for submissions and quiz attempts (though they are separate things)
   string userWhoIsProcessed; // target user
   
   /*
     "The user with id '' created the '' activity with course module id ''."
   */
-  
+
   if ( regex_search(description, match,
                     regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the '(quiz|page|collaborate|resource|url|forum|hsuforum|lti|hvp|book|label)' activity with course module id '([[:digit:]]+)'\\.")) )
   {
@@ -210,14 +210,13 @@ XAPI::ActivityEntry::ToXapiStatement()
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the comment with id '([[:digit:]]+)' (to|from) the submission with id '([[:digit:]]+)' for the assignment with course module id '([[:digit:]]+)'\\.")) )
   {
-    //http://adlnet.gov/expapi/verbs/commented
+
     userid = anonymizer(match[1]);
-    verbname = match[2];
-    activityType = "comment";
+    verbname = "commented"; //match[2];
+    activityType = "submission";
     activity_id = match[6];
-    // context: assignment
-    // target: submission
-    //extension http://id.tincanapi.com/extension/attempt-id
+    attemptNumber = match[5];
+    
   }
   /*
     "The user with id '' has submitted the submission with id '' for the assignment with course module id ''."
@@ -313,7 +312,7 @@ XAPI::ActivityEntry::ToXapiStatement()
       {"homePage", processed_user_homepage.str()}
     };
 
-    auto it = moodleXapiActivity.find("attempt");
+    auto it = activityTypes.find("attempt");
      
     // add to related context
     extensions["http://id.tincanapi.com/extension/target"] = user;
@@ -535,9 +534,9 @@ XAPI::ActivityEntry::ToXapiStatement()
   // ignored
   // The user with id '' assigned the role with id '' to the user with id ''.
   //"The user with id '' restored old course with id '' to a new course with id ''."
-  // The user with id '' has viewed the submission status page for the assignment with course module id ''.
   // The user with id '' viewed the list of users in the course with id ''
   // The user with id '' viewed the log report for the course with id ''
+  // The user with id '' has viewed the submission status page for the assignment with course module id ''.
   //  "The user with id '' viewed the grading form for the user with id '' for the assignment with course module id ''."
   //  "The user with id '' viewed the grading table for the assignment with course module id ''."
   // The user with id '' viewed the edit page for the quiz with course module id ''.
@@ -614,6 +613,12 @@ XAPI::ActivityEntry::ToXapiStatement()
   {
     stringstream ss;
     ss << object_id << "#p=" << postNumber;
+    object_id = ss.str();
+  }
+  else if ( it->first == "submission"  )
+  {
+    stringstream ss;
+    ss << object_id << "&userid=" << attemptNumber;
     object_id = ss.str();
   }
   /* find proper Xapi activity type */ 
