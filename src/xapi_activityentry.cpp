@@ -586,6 +586,11 @@ XAPI::ActivityEntry::ToXapiStatement()
   {
     throw xapi_activity_ignored_error("launched:Collab");
   }
+  else if (regex_search(description, match,
+			 regex("[Tt]he user with id '([[:digit:]]+)' deleted the recording with id '([[:digit:]]+)' for the Collab with course module id '([[:digit:]]+)'\\.")))
+  {
+    throw xapi_activity_ignored_error("deleted:Collab recording");
+  }
   else
   {
     // final fallback

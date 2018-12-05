@@ -8,6 +8,7 @@
 #include <xapi_grade.h>
 #include <xapi_statementfactory.h>
 #include <xapi_anonymizer.h>
+#include <omp.h>
 #include <string>
 #include <cctype>
 #include <json.hpp>
@@ -175,12 +176,13 @@ XAPI::Application::ParseJSONEventLog()
   #pragma omp parallel for
   for(size_t i=0;i<activities.size(); ++i)
   {
-    #pragma omp critical
+    if ( omp_get_thread_num() == 0 )
     {
       stringstream ss;
-      ss << "Caching user data [" << std::string(progress++) << "%]...";
-      UpdateThrobber(ss.str());
+      ss << "Caching user data [" << std::string(progress) << "%]...";
+      UpdateThrobber(ss.str()); 
     }
+    
     try {
       std::vector<string> lineasvec = activities[i];
       XAPI::StatementFactory::CacheUser(lineasvec);
@@ -188,16 +190,25 @@ XAPI::Application::ParseJSONEventLog()
     {
       cerr << ex.what() << "\n";
     }
+#pragma omp critical
+    progress++;
   }
+  
+  stringstream ss;
+  ss << "Caching user data [" << std::string(progress) << "%]...";
+  UpdateThrobber(ss.str()); 
+  
   cerr << "\n";
   progress.ResetCurrent();
+  
   #pragma omp parallel for
   for(size_t i=0;i<activities.size(); ++i)
   {
-    #pragma omp critical
+
+    if ( omp_get_thread_num() == 0 )
 		{
       stringstream ss;
-      ss << "Processing JSON event log [" << std::string(progress++) << "%]...";
+      ss << "Processing JSON event log [" << std::string(progress) << "%]...";
       UpdateThrobber(ss.str());
 		}
     // each log column is an array element
@@ -207,7 +218,7 @@ XAPI::Application::ParseJSONEventLog()
       // use overwritten version of Parse
 			
       string tmp = XAPI::StatementFactory::CreateActivity(lineasvec);
-#pragma omp critical
+      #pragma omp critical
       statements.push_back(tmp);
     }
     catch ( xapi_no_result_error & ex )
@@ -244,6 +255,9 @@ XAPI::Application::ParseJSONEventLog()
       #pragma omp critical
       errorMessages[ex.what()]++;
     }
+#pragma omp critical
+    progress++;
+    
     //catch ( std::exception & ex )
     //{
     // errorMessages[ex.what()]++;
@@ -252,7 +266,10 @@ XAPI::Application::ParseJSONEventLog()
     // vector now contains strings from one row, output to cout here
     //cout << "\n----------------------" << endl;
   }
-
+  ss.str("");
+  ss << "Processing JSON event log [" << std::string(progress) << "%]...";
+  UpdateThrobber(ss.str());
+  
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
@@ -411,10 +428,10 @@ XAPI::Application::CreateBatches()
       batch.contents << statements[si];
       if ( si < batch.end-1) batch.contents << ",";
       batch.progress++;
-      #pragma omp critical
-      {
+
+      if ( omp_get_thread_num() == 0 )
         DisplayBatchStates();
-      }
+
     }
     batch.contents << "]";
   }
