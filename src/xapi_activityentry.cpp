@@ -151,18 +151,27 @@ XAPI::ActivityEntry::ToXapiStatement()
   string discussionNumber; // required for discussion posts
   string attemptNumber; // for submissions and quiz attempts (though they are separate things)
   string userWhoIsProcessed; // target user
+
+
   
+
+  if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' (has )?([[:alnum:]]+) (a |the )?(backup|grades|old course|submission status page|course participation report|grading form|grading table|live log|singleview report|tour|question category|user report).*")))
+  {
+    string tmp = match[3];
+    throw xapi_activity_ignored_error(tmp+":(backup/grades/old course/submission status page)");
+  }
   /*
     "The user with id '' created the '' activity with course module id ''."
   */
-
   if ( regex_search(description, match,
-                    regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the '(quiz|page|collaborate|resource|url|forum|hsuforum|lti|hvp|book|label)' activity with course module id '([[:digit:]]+)'\\.")) )
+                    regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the '(quiz|page|collaborate|resource|url|forum|hsuforum|lti|hvp|book|label|questionnaire|assign)' activity with course module id '([[:digit:]]+)'\\.")) )
   {
 
     userid = anonymizer(match[1]);
     verbname = match[2];
     activityType = match[3];
+    if ( activityType == "assign" ) activityType = "assignment";
     activity_id = match[4];
     
   }
@@ -170,15 +179,16 @@ XAPI::ActivityEntry::ToXapiStatement()
     "The user with id '' created section number '' for the course with id ''"
     "The user with id '' updated section number '' for the course with id ''"
     "The user with id '' viewed the section number '' of the course with id ''."
+    "The user with id '' deleted section number '' (section name 'Siirretyt materiaalit ') for the course with id ''"
   */
   else if ( regex_search(description, match,
-                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) (the )?section number '([[:digit:]]+)' (for|of) the course with id '([[:digit:]]+)'\\.?")))
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) (the )?section number '([[:digit:]]+)' (\\(section name '[[:alnum:]]+' \\))?(for|of) the course with id '([[:digit:]]+)'\\.?")))
   {
     userid = anonymizer(match[1]);
     verbname = match[2];
     activityType = "section";
     sectionNumber = match[4];
-    activity_id = match[5];
+    activity_id = match[7];
   }
   // 'The user with id '' viewed the profile for the user with id '' in the course with id ''.
   else if ( regex_search(description, match,
@@ -216,26 +226,44 @@ XAPI::ActivityEntry::ToXapiStatement()
     activityType = "submission";
     activity_id = match[6];
     attemptNumber = match[5];
-    
+    userWhoIsProcessed = anonymizer(match[1]);
   }
-  /*
+
+    /* 
+     The user with id '' has graded the submission '' for the user with id '' for the assignment with course module id ''. 
+     
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' has graded the submission '([[:digit:]]+)' for "
+                               "the user with id '([[:digit:]]+)' for the assignment with course module id '([[:digit:]]+)'\\.")))
+  {
+    userid = anonymizer(match[1]);
+    activityType = "submission";
+    verbname = "evaluated";
+    activity_id = match[4];
+    attemptNumber = match[2];
+    userWhoIsProcessed = match[3];
+    extensions["http://id.tincanapi.com/extension/attempt-id"] = attemptNumber;
+  }
+    /*
     "The user with id '' has submitted the submission with id '' for the assignment with course module id ''."
     "The user with id '' has uploaded a file to the submission with id '' in the assignment activity with course module id ''."     
-    "The user with id '' has graded the submission '' for the user with id '' for the assignment with course module id ''."
-
 
   */
-  
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)'( has)? ([[:alnum:]]+) (the submission|a file to the submission) with id '([[:digit:]]+)' (for|in) the assignment( activity)? with course module id '([[:digit:]]+)'\\.")) )
   {
     // assignment submission
     userid = anonymizer(match[1]);
     verbname = match[3];
-    activityType = "assignment";
-    attemptNumber = match[4];
+
+    activityType = "submission";
+    attemptNumber = match[5];
     activity_id = match[8];
-    extensions["http://id.tincanapi.com/extension/attempt-id"] = attemptNumber;
+    userWhoIsProcessed = anonymizer(match[1]);
+    auto it = activityTypes.find("submission");
+    extensions["http://id.tincanapi.com/extension/attempt-id"] = it->second + attemptNumber;
+    
   }
   /*
     "The user with id '' viewed their submission for the assignment with course module id ''."
@@ -318,6 +346,23 @@ XAPI::ActivityEntry::ToXapiStatement()
     extensions["http://id.tincanapi.com/extension/target"] = user;
     extensions["http://id.tincanapi.com/extension/attempt-id"] = it->second + attemptNumber;
   }
+  /*
+    'The user with id '' manually graded the question with id '' for the attempt with id '' for the quiz with course module id ''
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' manually graded the question with id '([[:digit:]]+)' for the attempt with id '([[:digit:]]+)' for the quiz with course module id '([[:digit:]]+)'\\.")) )
+  {
+    userid = anonymizer(match[1]);
+    verbname = "evaluated";
+    activityType = "submission";
+    attemptNumber = match[3];
+    activity_id = match[4];
+    string questionId = match[2];
+    auto it = activityTypes.find("quiz");
+    extensions["http://id.tincanapi.com/extension/attempt-id"] = it->second + attemptNumber;
+    it = activityTypes.find("question");
+    extensions["http://id.tincanapi.com/extension/target"] = it->second + questionId;
+  }
   /* 
      "The user with id '' has printed the book with course module id ''."
   */
@@ -327,6 +372,15 @@ XAPI::ActivityEntry::ToXapiStatement()
     userid = anonymizer(match[1]);
     verbname = match[2];
     activityType = "book";
+    activity_id = match[3]; 
+  }
+  
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' viewed the recording with id '([[:digit:]]+)' for the Collab with course module id '([[:digit:]]+)'\\.")) )
+  {
+    userid = anonymizer(match[1]);
+    verbname = "viewed";
+    activityType = "collaborate";
     activity_id = match[3]; 
   }
   /*
@@ -399,18 +453,18 @@ XAPI::ActivityEntry::ToXapiStatement()
        
   }
   /*
-    "The user with id '' subscribed the user with id '' to the discussion with id '' in the forum with the course module id ''."
+    "The user with id '' (un)subscribed the user with id '' to/from the discussion with id '' in the forum with the course module id ''."
   */
   else if ( regex_search(description, match,
-                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the user with id '([[:digit:]]+)' to the discussion[[:blank:]]+with id '([[:digit:]]+)' in the forum with the course module id '([[:digit:]]+)'\\.")) )
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the user with id '([[:digit:]]+)' (to|from) the discussion[[:blank:]]+with id '([[:digit:]]+)' in the forum with the course module id '([[:digit:]]+)'\\.")) )
   {
     // subscribed user to discussion
     userid = anonymizer(match[1]);
     verbname = match[2];
     userWhoIsProcessed = anonymizer(match[3]);
     activityType = "discussion";
-    postNumber = match[4];
-    activity_id = match[5];
+    postNumber = match[5];
+    activity_id = match[6];
     // check should target be event added if "self"
   }
   /*
@@ -432,12 +486,13 @@ XAPI::ActivityEntry::ToXapiStatement()
     "The user with id '' has created the post with id '' in the discussion with id '' in the forum with course module id ''."
     "The user with id '' has created the post with id '' in the discussion with id '' in the forum with the course module id ''."
     "The user with id '' has updated the post with id '' in the discussion with id '' in the forum with course module id ''."
+    "The user with id '' has deleted the post with id '' in the discussion with id '' in the forum with course module id ''."
     "The user with id '' has posted content in the forum post with id '' in the discussion '' located in the forum with course module id ''." // REPLY
     "The user with id '' has posted content in the forum post with id '' in the discussion '' located in the forum with the course module id ''." // REPLY
 
   */
   else if ( regex_search(description, match,
-                         regex("[Tt]he user with id '([[:digit:]]+)' has (created|posted content|updated) (in )?(the )?(forum )?post with id '([[:digit:]]+)' in the discussion (with id )?'([[:digit:]]+)' (located )?in the forum with (the )?course module id '([[:digit:]]+)'\\.")) )
+                         regex("[Tt]he user with id '([[:digit:]]+)' has (created|posted content|updated|deleted) (in )?(the )?(forum )?post with id '([[:digit:]]+)' in the discussion (with id )?'([[:digit:]]+)' (located )?in the forum with (the )?course module id '([[:digit:]]+)'\\.")) )
   {
     userid = anonymizer(match[1]);
     verbname = "posted";
@@ -481,6 +536,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   }
   else if ( regex_search(description, match, regex("User ([[:digit:]]+) (updated|created) the question ([[:digit:]]+)\\.")))
   {
+    verbname = match[2];
     // we cannot create proper log entry using this kind of statement moodle logs give us.
     throw xapi_activity_ignored_error(verbname+":question (question id without proper course module id)");
   }
@@ -521,10 +577,14 @@ XAPI::ActivityEntry::ToXapiStatement()
     throw xapi_activity_ignored_error("(un)assigned:(role)");
   }
   else if ( regex_search(description, match,
-			 regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) (a )?(backup|grades|old course).*")))
+			 regex("Kohde luotiin tunnuksella.*|Kohde \\(tunnus [[:digit:]]+\\) poistettiin.")))
   {
-    string tmp = match[2];
-    throw xapi_activity_ignored_error(tmp+":(backup/grades/old course)");
+    throw xapi_activity_ignored_error("created/deleted:target(localized))");
+  }
+  else if (regex_search(description, match,
+			 regex("[Tt]he user with id '([[:digit:]]+)' launched the session with id '([[:digit:]]+)' for the Collab with course module id '([[:digit:]]+)'\\.")))
+  {
+    throw xapi_activity_ignored_error("launched:Collab");
   }
   else
   {
@@ -532,6 +592,7 @@ XAPI::ActivityEntry::ToXapiStatement()
     throw xapi_parsing_error("Cannot make sense of: '"+ description+ "'");
   }
   // ignored
+  // The user with id '' launched the session with id '' for the Collab with course module id ''.
   // The user with id '' assigned the role with id '' to the user with id ''.
   //"The user with id '' restored old course with id '' to a new course with id ''."
   // The user with id '' viewed the list of users in the course with id ''
@@ -618,7 +679,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   else if ( it->first == "submission"  )
   {
     stringstream ss;
-    ss << object_id << "&userid=" << attemptNumber;
+    ss << object_id << "&userid=" << userWhoIsProcessed;
     object_id = ss.str();
   }
   /* find proper Xapi activity type */ 

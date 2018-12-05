@@ -19,10 +19,12 @@ const std::map<std::string, std::string> supportedVerbs = {
   { "created","http://activitystrea.ms/schema/1.0/create"},
   { "deleted","http://activitystrea.ms/schema/1.0/delete"},
   { "enrolled","http://activitystrea.ms/schema/1.0/join"},
+  { "joined","http://activitystrea.ms/schema/1.0/join"},
+  { "left", "http://activitystrea.ms/schema/1.0/leave" },
   { "commented", "http://adlnet.gov/expapi/verbs/commented" },
   /*{ "ended", ""}, */
   { "exported", ""}, // ignore grade exports
-  /* { "graded", ""},*/
+  { "evaluated", "http://www.tincanapi.co.uk/verbs/evaluated"}, // grading is interpreted as evaluation
   { "posted", "http://id.tincanapi.com/verb/replied"},
   { "searched", "http://activitystrea.ms/schema/1.0/search"},
   { "started", "http://activitystrea.ms/schema/1.0/start"},
@@ -33,9 +35,11 @@ const std::map<std::string, std::string> supportedVerbs = {
     { "launched", ""},*/
   { "reviewed", "http://id.tincanapi.com/verb/reviewed" },
   { "subscribed", "http://activitystrea.ms/schema/1.0/follow"},
+  { "unsubscribed", "http://activitystrea.ms/schema/1.0/stop-following"},
   { "unassigned", ""}, // ignore role unassignments
   { "unenrolled", "http://activitystrea.ms/schema/1.0/remove"},
   { "updated", "http://activitystrea.ms/schema/1.0/update"},
+  { "uploaded", "http://activitystrea.ms/schema/1.0/attach" },
   { "viewed","http://id.tincanapi.com/verb/viewed"},
   { "completed", "http://activitystrea.ms/schema/1.0/complete"},
   { "previewed", ""}, // ignore previews
@@ -56,11 +60,11 @@ std::map<std::string, std::string> activityTypes = {
   { "lti", "/mod/lti/view.php?id=" },
   { "course", "/course/view.php?id="},
   { "assignment", "/mod/assign/view.php?id=" },
+  { "submission", "/mod/assign/view.php?id=" }, // submissions are for assignments, needs to add  &userid=<USER ID>. Extensions will hold unique moodle id for submission.
   { "lesson", "/mod/lesson/view.php?id=" },
   { "section", "/course/view.php?id=" }, // needs to add also #section-<NUMBER>
   { "hvp", "/mod/hvp/view.php?id=" },
   { "attempt", "/mod/quiz/review.php?attempt=" }, // attempts are for quizzes
-  { "submission", "/mod/assign/view.php?id=" }, // submissions are for assignments, needs to add  &userid=<USER ID>. Extensions will hold unique moodle id for submission.
   { "book", "/mod/book/view.php?id="},
   { "chapter", "/mod/book/view.php?id="}, // needs to add also &chapterid=<NUMBER>
   { "discussion", "/mod/forum/discuss.php?d="},
@@ -68,7 +72,8 @@ std::map<std::string, std::string> activityTypes = {
   { "post", "/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
   { "reply", "/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
   { "homepage", "/user/profile.php?id="}, // not really activity, just helps in creating user home page addresses.
-  { "label", "https://moodle.karelia.fi/course/modedit.php?update=" } // unique ids for entire site labels, it seems
+  { "label", "https://moodle.karelia.fi/course/modedit.php?update=" }, // unique ids for entire site labels, it seems
+  { "question", "https://moodle.karelia.fi/question/question.php?cmid=62172&id=" } // edit URL
 };
 // some heuristics to match completion state updates 
 const std::map<std::string, std::string> contextModuleLocaleToActivityType = {
@@ -100,7 +105,9 @@ const std::map<std::string, std::string> moodleXapiActivity = {
   { "user", "http://id.tincanapi.com/activitytype/user-profile" },
   { "post", "http://id.tincanapi.com/activitytype/forum-reply"},
   { "reply", "http://id.tincanapi.com/activitytype/forum-reply"},
-  { "label", "http://activitystrea.ms/schema/1.0/note"}
+  { "label", "http://activitystrea.ms/schema/1.0/note"},
+  { "submission", "http://id.tincanapi.com/activitytype/school-assignment"},
+  { "question", "http://activitystrea.ms/schema/1.0/question" }
 };
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::StatementFactory::StatementFactory()
