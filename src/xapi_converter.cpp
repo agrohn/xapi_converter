@@ -31,19 +31,28 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   ////////////////////////////////////////////////////////////////////////////////
   // For some hints on usage...
   
+  stringstream tmp;
+  tmp << "<value> max bytes per batch (needs to be less than or equal to default " << CLIENT_BODY_MAX_SIZE_BYTES <<").";
+  string batchMaxBytesDescription = tmp.str();
 
+  tmp.str("");
+  tmp << "<value> max number of statements per batch. By default, " << DEFAULT_BATCH_STATEMENT_COUNT_CAP << ",";
+  string batchMaxStatementsDescription = tmp.str();
+  
   // options 
   desc.add_options()
   ("log", po::value<string>(), "<YOUR-LOG-DATA.json> Actual course log data in JSON format")
   ("grades", po::value<string>(), "<YOUR-GRADE_DATA.json>  Grade history data obtained from moodle")
   ("courseurl", po::value<string>(), "<course_url> Unique course moodle web address, ends in ?id=xxxx")
   ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
-  ("host", po::value<string>(), "<addr> learning locker server hostname or ip. If not defined, performs dry run.")
+  ("send", po::value<string>(), "<addr> learning locker server hostname or ip. If not defined, performs dry run.")
   ("errorlog", po::value<string>(), "<errorlog> where error information is printed.")
   ("write", "statements json files are written to local directory.")
   ("load", po::value<std::vector<string> >()->multitoken(), "<file1.json> [<file2.json> ...] Statement json files are loaded to memory from disk. Cannot be used same time with --logs.")
   ("anonymize", "Should user data be anonymized.")
   ("batch-prefix", po::value<string>(), "<string> file name prefix to be used while writing statement json files to disk.")
+  ("batch-max-bytes", po::value<size_t>(), batchMaxBytesDescription.c_str())
+  ("batch-max-statements", po::value<size_t>(),batchMaxStatementsDescription.c_str())
   ("print", "statements json is printed to stdout.");
   throbberState = 0;
   batchFilenamePrefix = DEFAULT_BATCH_FILENAME_PREFIX;
@@ -126,8 +135,8 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   }
   
   // check if learning locker url was specified
-  if ( vm.count("host") )
-    learningLockerURL = vm["host"].as<string>();
+  if ( vm.count("send") )
+    learningLockerURL = vm["send"].as<string>();
 
   if ( vm.count("errorlog"))
     errorFile = vm["errorlog"].as<string>();
@@ -137,7 +146,17 @@ XAPI::Application::ParseArguments( int argc, char **argv )
     batchFilenamePrefix = vm["batch-prefix"].as<string>();
   }
 
-
+  if ( vm.count("batch-max-bytes")> 0)
+  {
+    clientBodyMaxSize = std::min(vm["batch-max-bytes"].as<size_t>(),
+                                 CLIENT_BODY_MAX_SIZE_BYTES);
+  }
+  
+  if ( vm.count("batch-max-statements")> 0)
+  {
+    maxStatementsInBatch = vm["batch-max-statements"].as<size_t>();
+  }
+  
   print = vm.count("print") > 0;
   write = vm.count("write") > 0;
   anonymize = vm.count("anonymize") > 0;
@@ -345,9 +364,11 @@ XAPI::Application::ComputeBatchSizes()
   {
     size_t statementLength = statements[i].length();
     // batch size needs also to take array separator ',' into account 
-    size_t newBatchSize = (1 + batch.size + statementLength) ; 
+    size_t newBatchSize = (1 + batch.size + statementLength); 
+    size_t newBatchStatementCount = i+1-batch.start;
     
-    if ( newBatchSize < clientBodyMaxSize )
+    if ( newBatchSize < clientBodyMaxSize &&
+         newBatchStatementCount <= maxStatementsInBatch )
     {
       batch.size = newBatchSize;
       batch.end = i+1;
@@ -364,8 +385,6 @@ XAPI::Application::ComputeBatchSizes()
       batch.start = i;
       batch.end = i+1;
       batch.size = statementLength + 2;
-      p.ResetCurrent();
-
     }
     stringstream ss;
     ss << "Computing batches " << batches.size() << " [" << std::string(p+=1)+"%]...";
@@ -387,11 +406,12 @@ XAPI::Application::DisplayBatchStates()
 {
   
   stringstream ss;
-  ss << (ShouldLoad() ? "Loading " : "Creating ") << batches.size() << " batches ";
+  size_t completed = 0;
   for( size_t b=0;b<batches.size();b++)
   {
-    ss <<  " [" << std::string(batches[b].progress)+"%]";
+    completed += batches[b].progress.IsComplete() ? 1:0;
   }
+  ss << "Done " << (ShouldLoad() ? "loading " : "creating ") << completed << "/" << batches.size() << " batches ";
   this->UpdateThrobber(ss.str());
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -424,6 +444,7 @@ XAPI::Application::LoadBatches()
     if ( omp_get_thread_num() == 0 )  DisplayBatchStates();
   }
   DisplayBatchStates();
+    cerr << "\n";
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
@@ -451,6 +472,8 @@ XAPI::Application::CreateBatches()
     }
     batch.contents << "]";
   }
+  DisplayBatchStates();
+  cerr << "\n";
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
@@ -572,23 +595,23 @@ XAPI::Application::WriteBatchFiles()
 {
   
   int count = 0;
+  // get count of numbers is base 10 figure.
+  size_t paddingWidth = batches.size() > 0 ? ((size_t)log10(batches.size()))+1 : 0 ;
 
   for( auto & batch : batches )
   {
-    
     try {
       std::string batchContents = batch.contents.str();
       stringstream ss;
-      ss << "Writing batch " <<  count << " (" << batchContents.length() << " bytes, #" << (batch.end - batch.start) << " statements)...";
+      ss << "Writing batch " <<  count+1 << "/" << batches.size() << " (" << batchContents.length() << " bytes, #" << (batch.end - batch.start) << " statements)...";
       stringstream name;
       // ensure there are always zero-filled counter for easier sorting
-      name << batchFilenamePrefix << setfill('0') << setw(batches.size()) << count << ".json";
+      name << batchFilenamePrefix << setfill('0') << setw(paddingWidth) << count << ".json";
       UpdateThrobber(ss.str());
       ofstream out(name.str());
       if ( !out ) throw runtime_error("Could not open file: '" + name.str() + "'");
       out << batchContents;
       count++;
-      cerr << "\n";
     }
     catch ( std::exception & e ) {
       std::cout << "error " << e.what() << std::endl;
