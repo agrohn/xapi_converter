@@ -36,9 +36,12 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   string batchMaxBytesDescription = tmp.str();
 
   tmp.str("");
-  tmp << "<value> max number of statements per batch. By default, " << DEFAULT_BATCH_STATEMENT_COUNT_CAP << ",";
+  tmp << "<value> max number of statements per batch. By default, " << DEFAULT_BATCH_STATEMENT_COUNT_CAP << ".";
   string batchMaxStatementsDescription = tmp.str();
-  
+
+  tmp.str("");
+  tmp << "<value> Seconds to wait before sending next batch to server. By default, " << DEFAULT_BATCH_SEND_DELAY_SECONDS << ".";
+  string batchSendDelay = tmp.str();
   // options 
   desc.add_options()
   ("log", po::value<string>(), "<YOUR-LOG-DATA.json> Actual course log data in JSON format")
@@ -53,6 +56,7 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   ("batch-prefix", po::value<string>(), "<string> file name prefix to be used while writing statement json files to disk.")
   ("batch-max-bytes", po::value<size_t>(), batchMaxBytesDescription.c_str())
   ("batch-max-statements", po::value<size_t>(),batchMaxStatementsDescription.c_str())
+  ("batch-send-delay", po::value<size_t>(), batchSendDelay.c_str() )
   ("print", "statements json is printed to stdout.");
   throbberState = 0;
   batchFilenamePrefix = DEFAULT_BATCH_FILENAME_PREFIX;
@@ -155,6 +159,11 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   if ( vm.count("batch-max-statements")> 0)
   {
     maxStatementsInBatch = vm["batch-max-statements"].as<size_t>();
+  }
+  
+  if ( vm.count("batch-send-delay")> 0)
+  {
+    sendDelayBetweenBatches = vm["batch-send-delay"].as<size_t>();
   }
   
   print = vm.count("print") > 0;
@@ -492,10 +501,11 @@ XAPI::Application::SendBatches()
     }
     string auth = "Basic " + base64_encode(reinterpret_cast<const unsigned char *>(tmp.c_str()), tmp.size());
     int count = 0;
-    int retryWaitSeconds = 0;
-    const int RETRY_WAIT_SECONDS = 10;
+    int sendDelaySecondsRemaining = 0;
 
 
+    bool lastBatchFailed = false;
+    
     for( auto & batch : batches )
     {
       // submission might fail, keep trying until you get it done.
@@ -503,78 +513,97 @@ XAPI::Application::SendBatches()
       int attemptNumber = 1;
       do
       {
-	if ( retryWaitSeconds > 0  )
-	{
-	  // sleep for some time
-	  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-	  retryWaitSeconds--;
-	  stringstream ss;
-	  ss << "Sending batch " << count << " failed! Retrying in " << retryWaitSeconds << "...";
-	  UpdateThrobber(ss.str());
-	}
-	else
-	{
-	  try {
-	    
-	    curlpp::Cleanup cleaner;
-	    curlpp::Easy request;
+        if ( sendDelaySecondsRemaining > 0  )
+        {
+
+          stringstream ss;
+          if ( lastBatchFailed )
+          {
+            ss << "Sending batch " << count << " failed! Retrying in " << sendDelaySecondsRemaining << "...";
+          }
+          else
+          {
+            ss << "Sending batch " << count+1 << " in " << sendDelaySecondsRemaining  << "...";
+          }
+          UpdateThrobber(ss.str());
+          // sleep for some time
+          std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+          sendDelaySecondsRemaining--;
+        }
+        else
+        {
+          try {
+            
+            curlpp::Cleanup cleaner;
+            curlpp::Easy request;
 	
-	    string url = learningLockerURL+"/data/xAPI/statements";
-	    //cerr << "\nLearning locker URL: " << url << "\n";
-	    request.setOpt(new curlpp::options::Url(url)); 
-	    request.setOpt(new curlpp::options::Verbose(false)); 
-	    std::list<std::string> header;
-	    header.push_back("Authorization: " + auth);
+            string url = learningLockerURL+"/data/xAPI/statements";
+            //cerr << "\nLearning locker URL: " << url << "\n";
+            request.setOpt(new curlpp::options::Url(url)); 
+            request.setOpt(new curlpp::options::Verbose(false)); 
+            std::list<std::string> header;
+            header.push_back("Authorization: " + auth);
 	
-	    header.push_back("X-Experience-API-Version: 1.0.3");
-	    header.push_back("Content-Type: application/json; charset=utf-8");
-	    request.setOpt(new curlpp::options::HttpHeader(header)); 
+            header.push_back("X-Experience-API-Version: 1.0.3");
+            header.push_back("Content-Type: application/json; charset=utf-8");
+            request.setOpt(new curlpp::options::HttpHeader(header)); 
 	
 
-	    stringstream ss;
-	    ss << "Sending batch " << count << " ";
-	    if ( responseCode == 0) {
-	      cerr << "\n";
-	    } else ss << "(attempt " << attemptNumber << ") ";
+            stringstream ss;
+            ss << "Sending batch " << count << " ";
+            if ( responseCode != 0)
+            {
+              ss << "(attempt " << attemptNumber << ") ";
+            } 
 
-	    ss << (batch.end - batch.start) << " statements ";
-	    ss << "(" << batch.size << "B)"   << "...";
+            ss << (batch.end - batch.start) << " statements ";
+            ss << "(" << batch.size << "B)"   << "...";
 
 	  
-	    UpdateThrobber(ss.str());
-	    std::string batchContents = batch.contents.str();
-	    request.setOpt(new curlpp::options::PostFields(batchContents));
-	    request.setOpt(new curlpp::options::PostFieldSize(batchContents.length()));
-	    ostringstream response;
-	    request.setOpt( new curlpp::options::WriteStream(&response));
-	    //cerr << "\n" << batch << "\n";
-	    request.perform();
-	    responseCode = curlpp::infos::ResponseCode::get(request);
+            UpdateThrobber(ss.str());
+            std::string batchContents = batch.contents.str();
+            request.setOpt(new curlpp::options::PostFields(batchContents));
+            request.setOpt(new curlpp::options::PostFieldSize(batchContents.length()));
+            ostringstream response;
+            request.setOpt( new curlpp::options::WriteStream(&response));
+            //cerr << "\n" << batch << "\n";
+            request.perform();
+            responseCode = curlpp::infos::ResponseCode::get(request);
 
-	    if ( responseCode != 200)
-	    {
-
-	      retryWaitSeconds = RETRY_WAIT_SECONDS;
-	      ss.str("");
-	      ss << "Sending batch " << count << " failed! Retrying in " << retryWaitSeconds << "...";
-	      UpdateThrobber(ss.str());
-	      attemptNumber++;
+            if ( responseCode != 200)
+            {
+              lastBatchFailed = true;
+              sendDelaySecondsRemaining = sendDelayBetweenBatches;
+              ss.str("");
+              ss << "Sending batch " << count << " failed! Retrying in " << sendDelaySecondsRemaining << "...";
+              UpdateThrobber(ss.str());
+              attemptNumber++;
 	    
-	      ofstream file("curl.log", std::fstream::app);
-	      file << response.str() << "\n";
-	      file.close();
-	    }
+              ofstream file("curl.log", std::fstream::app);
+              file << response.str() << "\n";
+              file.close();
+            }
+            else
+            {
+              lastBatchFailed = false;
+              // if batch is not the last one, add delay.
+              if ( count < batches.size()-1)
+              {
+                sendDelaySecondsRemaining = sendDelayBetweenBatches;
+              }
+              cerr << "\n";
+            }
 
-	  }
-	  catch ( curlpp::LogicError & e ) {
+          }
+          catch ( curlpp::LogicError & e ) {
 	  
-	    std::cout << "Logic error " << e.what() << std::endl;
-	  }
-	  catch ( curlpp::RuntimeError & e ) {
-	    std::cout << "Runtime error " << e.what() << std::endl;
-	  }
-	}
-      } while ( (retryWaitSeconds > 0) || (responseCode != 200) );
+            std::cout << "Logic error " << e.what() << std::endl;
+          }
+          catch ( curlpp::RuntimeError & e ) {
+            std::cout << "Runtime error " << e.what() << std::endl;
+          }
+        }
+      } while ( (sendDelaySecondsRemaining > 0) || (responseCode != 200) );
       count++;
     }
   }
