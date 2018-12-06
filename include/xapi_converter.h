@@ -55,6 +55,11 @@ namespace XAPI
     {
       total = t;
     }
+    inline bool IsComplete() const
+    {
+      return (current== total);
+    }
+      
   };
   
   struct Context
@@ -70,13 +75,13 @@ namespace XAPI
 
     std::map<int,size_t> batchAndStatementsCount;
   };
-  enum BatchState { kIdle, kReadyForSending, kSending, kSent, kNumBatchStates };
+
   struct Batch
   {
     size_t start {0}; ///< batch start location in statements array.
     size_t end {0}; ///<batch end location in statements array.
     size_t size{0}; ///< batch size in bytes.
-    BatchState state{XAPI::kIdle}; ///< Current batch state.
+
     std::stringstream contents; ///< Batch contents to send.
     Progress progress;///< Batch progress status.
     std::string filename; ///< In case batch is loaded from disk, filename.
@@ -90,7 +95,7 @@ namespace XAPI
         start = other.start;
         end = other.end;
         size = other.size;
-        state = other.state;
+
         progress = other.progress;
         contents.str(other.contents.str());
         filename = other.filename;
@@ -103,14 +108,16 @@ namespace XAPI
       start = other.start;
       end = other.end;
       size = other.size;
-      state = other.state;
+
       progress = other.progress;
       contents.str(other.contents.str());
       filename = other.filename;
     }
 
   };
-  
+  /// absolute maximum for POST message body size.
+  const size_t CLIENT_BODY_MAX_SIZE_BYTES = 20000000;
+  const size_t DEFAULT_BATCH_STATEMENT_COUNT_CAP = 10000;
   class Application
   {
   private:
@@ -131,7 +138,7 @@ namespace XAPI
     };
     Login login;
     
-    size_t  clientBodyMaxSize{20000000}; 
+    size_t  clientBodyMaxSize{CLIENT_BODY_MAX_SIZE_BYTES}; 
     Context context;
     boost::program_options::variables_map vm;
     boost::program_options::options_description desc;
@@ -140,6 +147,7 @@ namespace XAPI
     bool write{false};
     bool load{false};
     bool anonymize{false};
+    size_t maxStatementsInBatch{DEFAULT_BATCH_STATEMENT_COUNT_CAP};
     std::string batchFilenamePrefix;
     Application();
     virtual ~Application();
