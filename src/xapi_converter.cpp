@@ -1,5 +1,5 @@
 /*
- * Parses moodle log from CSV and constructs xAPI statements out of it, sending them to LRS.
+ * Parses moodle logs and constructs xAPI statements out of them, sending them to LRS.
  * \author anssi grohn at karelia dot fi (c) 2018.
  */
 #include <xapi_converter.h>
@@ -23,6 +23,7 @@ namespace po = boost::program_options;
 std::map<std::string,int> errorMessages;
 string throbber = "|/-\\|/-\\";
 extern XAPI::Anonymizer anonymizer;
+#define DEFAULT_BATCH_FILENAME_PREFIX "batch_"
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::Application::Application() : desc("Command-line tool for sending XAPI statements to learning locker from  Moodle logs\nReleased under GPLv3 - use at your own risk. \n\nPrerequisities:\n\tLearning locker client credentials must be in json format in data/config.json.\n\tSimple object { \"login\": { \"key\": \"\", \"secret\":\"\"}, \"lms\" : { \"baseURL\" : \"\" }\n\nUsage:\n")
 {
@@ -33,23 +34,24 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
 
   // options 
   desc.add_options()
-  ("log", po::value<string>(), "<YOUR-LOG-DATA.csv> Actual course log data in CSV format")
-  ("logjson", po::value<string>(), "<YOUR-LOG-DATA.json> Actual course log data in JSON format")
+  ("log", po::value<string>(), "<YOUR-LOG-DATA.json> Actual course log data in JSON format")
   ("grades", po::value<string>(), "<YOUR-GRADE_DATA.json>  Grade history data obtained from moodle")
   ("courseurl", po::value<string>(), "<course_url> Unique course moodle web address, ends in ?id=xxxx")
   ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
   ("host", po::value<string>(), "<addr> learning locker server hostname or ip. If not defined, performs dry run.")
   ("errorlog", po::value<string>(), "<errorlog> where error information is printed.")
   ("write", "statements json files are written to local directory.")
+  ("load", po::value<std::vector<string> >()->multitoken(), "<file1.json> [<file2.json> ...] Statement json files are loaded to memory from disk. Cannot be used same time with --logs.")
   ("anonymize", "Should user data be anonymized.")
+  ("batch-prefix", po::value<string>(), "<string> file name prefix to be used while writing statement json files to disk.")
   ("print", "statements json is printed to stdout.");
   throbberState = 0;
-
+  batchFilenamePrefix = DEFAULT_BATCH_FILENAME_PREFIX;
 }
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::Application::~Application()
 {
-
+  
 }
 ////////////////////////////////////////////////////////////////////////////////
 bool
@@ -58,34 +60,84 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   namespace po = boost::program_options;
   po::store(po::parse_command_line(argc, argv, desc), vm);
   po::notify(vm);
+  // require at least 
 
-  if ( vm.count("log")  )
+  if ( vm.count("log") > 0 && vm.count("load") > 0 )
+  {
+    cerr << "Error: --log or --load cannot be used same time!\n";
+    return false;
+  }
+  if ( vm.count("write") > 0 && vm.count("load") > 0 )
+  {
+    cerr << "Error: You want me to load files from disk and write them again? "
+         << "--write or --load cannot be used same time!\n"; 
+    return false;
+  }
+  else if ( vm.count("log") > 0 )
   {
     data = vm["log"].as<string>();
-	dataAsJSON = false;
   }
-  
-  if ( vm.count("logjson" ))
+  else if ( vm.count("load") > 0 )
   {
-	data = vm["logjson"].as<string>();
-	dataAsJSON = true;
+    load = true;
+    vector<string> filenames = vm["load"].as< vector<string> >();
+    set<string> uniqueFilenames(filenames.begin(), filenames.end());
+    for( auto filename : uniqueFilenames )
+    {
+      batches.emplace_back();
+      batches.back().filename = filename;
+    }
   }
-  
+  else
+  {
+    cerr << "Error: using --log or --load is mandatory\n"; 
+    return false;
+  }
+
   if ( vm.count("grades") )
     gradeData = vm["grades"].as<string>();
 
-  if ( vm.count("courseurl") == 0) { cerr << "courseurl missing\n"; return false;}
-  else context.courseurl = vm["courseurl"].as<string>();
 
-  if ( vm.count("coursename") == 0) { cerr << "coursename missing\n"; return false;}
-  else context.coursename = vm["coursename"].as<string>();
+  if ( vm.count("courseurl") == 0)
+  {
+    // require course url only when log is specified.
+    if ( load == false )
+    {
+      cerr << "Error: courseurl is missing!\n";
+      return false;
+    }
+  }
+  else
+  {
+    context.courseurl = vm["courseurl"].as<string>();
+  }
+  // require course name only when log is specified
+  if ( vm.count("coursename") == 0)
+  {
+    if ( load == false )
+    {
+      cerr << "coursename missing\n";
+      return false;
+    }
+  }
+  else
+  {
+    context.coursename = vm["coursename"].as<string>();
+  }
+  
   // check if learning locker url was specified
   if ( vm.count("host") )
     learningLockerURL = vm["host"].as<string>();
 
   if ( vm.count("errorlog"))
     errorFile = vm["errorlog"].as<string>();
-  
+
+  if ( vm.count("batch-prefix") > 0)
+  {
+    batchFilenamePrefix = vm["batch-prefix"].as<string>();
+  }
+
+
   print = vm.count("print") > 0;
   write = vm.count("write") > 0;
   anonymize = vm.count("anonymize") > 0;
@@ -101,57 +153,6 @@ void
 XAPI::Application::PrintUsage()
 {
   cout << desc << "\n";
-}
-////////////////////////////////////////////////////////////////////////////////
-void
-XAPI::Application::ParseCSVEventLog()
-{
-  size_t fileSizeInBytes;
-  {
-    ifstream temp(data.c_str(), ios::binary | ios::ate);
-    fileSizeInBytes = temp.tellg();
-  }
-  // try to open activity log
-  ifstream activitylog(data.c_str());
-  if (!activitylog.is_open())
-  {
-    stringstream ss;
-    ss << "Cannot open file '" << data << "'\n";
-    throw xapi_parsing_error( ss.str());
-  }
-  ////////////////////////////////////////////////////////////////////////////////
-  // actual parsing of statements in activity
-  string line;
-  // skip first header line 
-  getline(activitylog,line);
-  Progress progress(0,fileSizeInBytes);
-  cerr << "\n";
-  while (getline(activitylog,line))
-  {
-    UpdateThrobber("Processing CSV...[" + std::string(progress+=line.length()) + "]...");
-    try
-    {
-      statements.push_back(	XAPI::StatementFactory::CreateActivity(line) );
-    }
-    catch ( xapi_activity_type_not_supported_error & ex )
-    {
-      errorMessages[ex.what()]+=1;
-      //cerr << ex.what() << "\n";
-    }
-    catch ( xapi_parsing_error & ex )
-    {
-      errorMessages[ex.what()]+=1;
-      //cerr << ex.what() << "\n";
-    }
-    catch ( std::out_of_range & ex )
-    {
-      errorMessages["could not parse time"]+=1;
-      //cout << "could not parse time\n";
-    }
-    // vector now contains strings from one row, output to cout here
-    //cout << "\n----------------------" << endl;
-  }
-  activitylog.close();
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
@@ -329,23 +330,6 @@ XAPI::Application::ParseGradeLog()
   gradinglog.close();
 }
 ////////////////////////////////////////////////////////////////////////////////
-std::string
-XAPI::Application::GetStatementsJSON() 
-{
-  stringstream ss;
-  ss << "[";
-  auto last_element = statements.end()-1;
-  Progress p(0,statements.size());
-  cerr << "\n";
-  for_each(statements.begin(), last_element, [&ss, this, &p] (auto & s) {
-      ss << s << ",";
-      this->UpdateThrobber("Converting statements to xAPI [" + std::string(p++) +"] ...");
-    });
-  ss << *last_element << "]";
-  this->UpdateThrobber("Converting statements to xAPI [" + std::string(p++) +"] ...");
-  return ss.str();
-}
-////////////////////////////////////////////////////////////////////////////////
 void
 XAPI::Application::ComputeBatchSizes()
 {
@@ -401,13 +385,45 @@ XAPI::Application::ComputeBatchSizes()
 void
 XAPI::Application::DisplayBatchStates()
 {
+  
   stringstream ss;
-  ss << "Creating " << batches.size() << " batches ";
+  ss << (ShouldLoad() ? "Loading " : "Creating ") << batches.size() << " batches ";
   for( size_t b=0;b<batches.size();b++)
   {
     ss <<  " [" << std::string(batches[b].progress)+"%]";
   }
   this->UpdateThrobber(ss.str());
+}
+////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::Application::LoadBatches()
+{
+  cerr << "\n";
+  #pragma omp parallel for 
+  for( size_t i=0;i<batches.size();i++)
+  {
+    Batch & batch = batches[i];
+    batch.progress.SetTotal(2);
+    if ( omp_get_thread_num() == 0 ) DisplayBatchStates();
+    
+    ifstream file(batch.filename, ios::in | ios::binary | ios::ate);
+    
+    if ( file.is_open() == false )
+      throw runtime_error("cannot open batch file for reading '" + batch.filename  + "'");
+    
+    ifstream::pos_type fileSize = file.tellg();
+    file.seekg(0, ios::beg);
+    batch.progress++;
+
+    if ( omp_get_thread_num() == 0 ) DisplayBatchStates();
+    batch.contents << file.rdbuf();
+    batch.progress++;
+    file.close();
+    
+    batch.size = fileSize;
+    if ( omp_get_thread_num() == 0 )  DisplayBatchStates();
+  }
+  DisplayBatchStates();
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
@@ -438,7 +454,7 @@ XAPI::Application::CreateBatches()
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
-XAPI::Application::SendStatements()
+XAPI::Application::SendBatches()
 {
   
   // send XAPI statements in POST
@@ -552,10 +568,11 @@ XAPI::Application::SendStatements()
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
-XAPI::Application::WriteStatementFiles()
+XAPI::Application::WriteBatchFiles()
 {
   
   int count = 0;
+
   for( auto & batch : batches )
   {
     
@@ -564,7 +581,8 @@ XAPI::Application::WriteStatementFiles()
       stringstream ss;
       ss << "Writing batch " <<  count << " (" << batchContents.length() << " bytes, #" << (batch.end - batch.start) << " statements)...";
       stringstream name;
-      name << "batch_" << count << ".json";
+      // ensure there are always zero-filled counter for easier sorting
+      name << batchFilenamePrefix << setfill('0') << setw(batches.size()) << count << ".json";
       UpdateThrobber(ss.str());
       ofstream out(name.str());
       if ( !out ) throw runtime_error("Could not open file: '" + name.str() + "'");
@@ -579,6 +597,15 @@ XAPI::Application::WriteStatementFiles()
   
 }
 ////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::Application::PrintBatches() const
+{
+  for(auto b : batches )
+  {
+    cout << b.contents.str() << "\n";
+  }
+}
+////////////////////////////////////////////////////////////////////////////////
 bool
 XAPI::Application::HasGradeData() const
 {
@@ -589,11 +616,6 @@ bool
 XAPI::Application::HasLogData() const
 {
   return !data.empty();
-}
-bool
-XAPI::Application::IsLogDataJSON() const
-{
-	return dataAsJSON;
 }
 ////////////////////////////////////////////////////////////////////////////////
 bool
@@ -610,6 +632,11 @@ bool
 XAPI::Application::ShouldWrite() const
 {
   return write;
+}
+bool
+XAPI::Application::ShouldLoad() const
+{
+  return load;
 }
 void
 XAPI::Application::UpdateThrobber(const std::string & msg )
@@ -664,9 +691,12 @@ int main( int argc, char **argv)
       app.PrintUsage();
       return 1;
     }
-    
-    cout << "course url: \"" << XAPI::StatementFactory::course_id << "\"\n";
-    cout << "course name: \"" << XAPI::StatementFactory::course_name << "\"\n";
+
+    if ( app.ShouldLoad() == false )
+    {
+      cout << "course url: \"" << XAPI::StatementFactory::course_id << "\"\n";
+      cout << "course name: \"" << XAPI::StatementFactory::course_name << "\"\n";
+    }
     // parse all config
     ifstream configDetails("data/config.json");
     json config;
@@ -683,27 +713,31 @@ int main( int argc, char **argv)
     }
     
     app.UpdateThrobber();
-    if ( app.HasLogData())
+    if ( app.HasLogData())    app.ParseJSONEventLog();
+    if ( app.HasGradeData())  app.ParseGradeLog();
+    
+
+    if ( app.ShouldLoad())
     {
-	  if ( app.IsLogDataJSON())	app.ParseJSONEventLog();
-	  else				app.ParseCSVEventLog();
-	}
-    if ( app.HasGradeData()) app.ParseGradeLog();
-    if ( app.ShouldPrint())
-    {
-      cout << app.GetStatementsJSON() << "\n";
+      app.LoadBatches();
     }
-    app.ComputeBatchSizes();
-    app.CreateBatches();
-    if ( app.ShouldWrite())
+    else
     {
-      app.WriteStatementFiles();
+      app.ComputeBatchSizes();
+      app.CreateBatches();
+      
+      if ( app.ShouldWrite())
+      {
+        app.WriteBatchFiles();
+      }
     }
+    
+    if ( app.ShouldPrint()) app.PrintBatches();
     
     if ( app.IsDryRun())
       cout << "alright, dry run - not sending statements.\n";
     else
-      app.SendStatements();
+      app.SendBatches();
 
     app.LogErrors();
     app.LogStats();

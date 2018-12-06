@@ -79,6 +79,7 @@ namespace XAPI
     BatchState state{XAPI::kIdle}; ///< Current batch state.
     std::stringstream contents; ///< Batch contents to send.
     Progress progress;///< Batch progress status.
+    std::string filename; ///< In case batch is loaded from disk, filename.
     
     Batch( ) : progress(0,0) {}
 
@@ -86,12 +87,13 @@ namespace XAPI
     {
       if ( this != &other )
       {
-	start = other.start;
-	end = other.end;
-	size = other.size;
-	state = other.state;
-	progress = other.progress;
-	contents.str(other.contents.str());
+        start = other.start;
+        end = other.end;
+        size = other.size;
+        state = other.state;
+        progress = other.progress;
+        contents.str(other.contents.str());
+        filename = other.filename;
       }
       return *this;
     }
@@ -104,6 +106,7 @@ namespace XAPI
       state = other.state;
       progress = other.progress;
       contents.str(other.contents.str());
+      filename = other.filename;
     }
 
   };
@@ -115,7 +118,7 @@ namespace XAPI
     Statistics stats;
   public:
     int throbberState;
-    bool dataAsJSON{false};
+
     std::string data;
     std::string gradeData;
     std::string learningLockerURL;
@@ -135,27 +138,31 @@ namespace XAPI
     std::vector<std::string> statements;
     bool print{false};
     bool write{false};
+    bool load{false};
     bool anonymize{false};
+    std::string batchFilenamePrefix;
     Application();
     virtual ~Application();
     bool ParseArguments( int argc, char **argv );
     void PrintUsage();
     
-    void ParseCSVEventLog();
-	void ParseJSONEventLog();
-    void ParseGradeLog();
 
+    void ParseJSONEventLog();
+    void ParseGradeLog();
+    
     void ComputeBatchSizes();
+    void LoadBatches();
     void CreateBatches();
-    void SendStatements();
-    void WriteStatementFiles();
+    void SendBatches();
+    void WriteBatchFiles();
+    void PrintBatches() const;
     bool HasGradeData() const;
     bool HasLogData() const;
-    bool IsLogDataJSON() const;
     bool IsDryRun() const;
     bool ShouldPrint() const;
     bool ShouldWrite() const;
-    std::string GetStatementsJSON();
+    bool ShouldLoad() const;
+
     void UpdateThrobber(const std::string & msg = "");
     void DisplayBatchStates();
     void LogErrors();
