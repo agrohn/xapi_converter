@@ -182,7 +182,7 @@ XAPI::ActivityEntry::ToXapiStatement()
     "The user with id '' deleted section number '' (section name 'Siirretyt materiaalit ') for the course with id ''"
   */
   else if ( regex_search(description, match,
-                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) (the )?section number '([[:digit:]]+)' (\\(section name '[[:alnum:]]+' \\))?(for|of) the course with id '([[:digit:]]+)'\\.?")))
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) (the )?section number '([[:digit:]]+)' (\\(section name '.+'\\) )?(for|of) the course with id '[[:digit:]]+'.*")))
   {
     userid = anonymizer(match[1]);
     verbname = match[2];

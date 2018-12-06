@@ -73,7 +73,8 @@ std::map<std::string, std::string> activityTypes = {
   { "reply", "/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
   { "homepage", "/user/profile.php?id="}, // not really activity, just helps in creating user home page addresses.
   { "label", "https://moodle.karelia.fi/course/modedit.php?update=" }, // unique ids for entire site labels, it seems
-  { "question", "https://moodle.karelia.fi/question/question.php?cmid=62172&id=" } // edit URL
+  { "question", "https://moodle.karelia.fi/question/question.php?cmid=62172&id=" }, // edit URL
+  { "questionnaire", "https://moodle.karelia.fi/mod/questionnaire/view.php?id=" } 
 };
 // some heuristics to match completion state updates 
 const std::map<std::string, std::string> contextModuleLocaleToActivityType = {
@@ -107,7 +108,9 @@ const std::map<std::string, std::string> moodleXapiActivity = {
   { "reply", "http://id.tincanapi.com/activitytype/forum-reply"},
   { "label", "http://activitystrea.ms/schema/1.0/note"},
   { "submission", "http://id.tincanapi.com/activitytype/school-assignment"},
-  { "question", "http://activitystrea.ms/schema/1.0/question" }
+  { "question", "http://activitystrea.ms/schema/1.0/question" },
+  { "questionnaire", "http://id.tincanapi.com/activitytype/survey" }
+
 };
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::StatementFactory::StatementFactory()
