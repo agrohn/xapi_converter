@@ -532,10 +532,10 @@ XAPI::Application::SendBatches()
 	
 
 	    stringstream ss;
-	    ss << "Sending batch " << count;
+	    ss << "Sending batch " << count << " ";
 	    if ( responseCode == 0) {
 	      cerr << "\n";
-	    } else ss << " (attempt " << attemptNumber << ") ";
+	    } else ss << "(attempt " << attemptNumber << ") ";
 
 	    ss << (batch.end - batch.start) << " statements ";
 	    ss << "(" << batch.size << "B)"   << "...";
