@@ -6,7 +6,7 @@
 #include <algorithm>    
 #include <iterator>     
 #include <iomanip>
-
+#include <chrono>
 
 
 #include <cstdlib>
@@ -74,6 +74,7 @@ namespace XAPI
     size_t numBatches{0};
 
     std::map<int,size_t> batchAndStatementsCount;
+    std::chrono::system_clock::time_point startTime;
   };
 
   struct Batch
@@ -126,7 +127,6 @@ namespace XAPI
     Statistics stats;
   public:
     int throbberState;
-
     std::string data;
     std::string gradeData;
     std::string learningLockerURL;

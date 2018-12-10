@@ -60,6 +60,7 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   ("print", "statements json is printed to stdout.");
   throbberState = 0;
   batchFilenamePrefix = DEFAULT_BATCH_FILENAME_PREFIX;
+  stats.startTime = chrono::system_clock::now();
 }
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::Application::~Application()
@@ -731,12 +732,15 @@ XAPI::Application::LogStats()
          << "range " << batches[e.first].start << "-" << (batches[e.first].end-1)
          << "\n";
   }
+  
+  chrono::duration<float> processingTime(chrono::system_clock::now() - stats.startTime);
+  cerr << "Process ran: " << processingTime.count() << "seconds\n";
 }
 ////////////////////////////////////////////////////////////////////////////////
 int main( int argc, char **argv)
 {
     using namespace std;
-    
+
     XAPI::Application app;
     if ( app.ParseArguments(argc, argv) == false )
     {
@@ -793,6 +797,7 @@ int main( int argc, char **argv)
 
     app.LogErrors();
     app.LogStats();
+
     return 0;
 }
 ////////////////////////////////////////////////////////////////////////////////
