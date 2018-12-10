@@ -10,6 +10,7 @@ extern const std::map<std::string, std::string> supportedVerbs;
 extern std::map<std::string, std::string> activityTypes;
 extern std::map<std::string, std::string> TaskNameToTaskID;
 extern std::map<std::string, std::string> UserNameToUserID;
+extern std::map<std::string, std::string> UserIDToUserName;
 ////////////////////////////////////////////////////////////////////////////////
 namespace XAPI
 {
