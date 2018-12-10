@@ -63,10 +63,11 @@ XAPI::ActivityEntry::Parse(const std::vector<std::string> & vec )
 {
   
   ParseTimestamp(vec.at(0));
-  
-  username =  anonymizer(vec.at(1));
-  related_username =   anonymizer(vec.at(2));
-  
+#pragma omp critical
+  {
+    username =  anonymizer(vec.at(1));
+    related_username =   anonymizer(vec.at(2));
+  }
   context = vec.at(3);
   // remove existing type-prefixing since it messes up name caching
   size_t pos = context.find_first_of(": ");
@@ -100,9 +101,12 @@ XAPI::ActivityEntry::UpdateUserData()
   if ( username.empty() ) throw xapi_parsing_error("no username found for: " + description);
   if ( regex_search(description, match, regex("[Tt]he user with id '([[:digit:]]+)' .*")))
   {
-    string userid = anonymizer(match[1]);
-    UserNameToUserID[anonymizer(username)] = userid;
-    UserIDToUserName[userid] = anonymizer(username);
+#pragma omp critical
+    {
+      string userid = anonymizer(match[1]);
+      UserNameToUserID[anonymizer(username)] = userid;
+      UserIDToUserName[userid] = anonymizer(username);
+    }
   }
 }
 
@@ -168,7 +172,9 @@ XAPI::ActivityEntry::ToXapiStatement()
                     regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the '(quiz|page|collaborate|resource|url|forum|hsuforum|lti|hvp|book|label|questionnaire|assign)' activity with course module id '([[:digit:]]+)'\\.")) )
   {
 
+    #pragma omp critical
     userid = anonymizer(match[1]);
+
     verbname = match[2];
     activityType = match[3];
     if ( activityType == "assign" ) activityType = "assignment";
@@ -184,7 +190,9 @@ XAPI::ActivityEntry::ToXapiStatement()
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) (the )?section number '([[:digit:]]+)' (\\(section name '.+'\\) )?(for|of) the course with id '[[:digit:]]+'.*")))
   {
+    #pragma omp critical
     userid = anonymizer(match[1]);
+
     verbname = match[2];
     activityType = "section";
     sectionNumber = match[4];
@@ -194,9 +202,11 @@ XAPI::ActivityEntry::ToXapiStatement()
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)' viewed the profile for the user with id '([[:digit:]]+)' in the course with id '([[:digit:]]+)'\\.")) )
   {
+    #pragma omp critical
     userid = anonymizer(match[1]);
     verbname = "viewed";
     activityType = "user";
+#pragma omp critical
     activity_id = anonymizer(match[2]);
   }
   /*
@@ -208,6 +218,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)'( has)? ([[:alnum:]]+) the course (information for the course )?with id '([[:digit:]]+)'.*")) )
   {
+    #pragma omp critical
     userid = anonymizer(match[1]);
     verbname = match[3];
     activityType = "course";
@@ -220,12 +231,13 @@ XAPI::ActivityEntry::ToXapiStatement()
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the comment with id '([[:digit:]]+)' (to|from) the submission with id '([[:digit:]]+)' for the assignment with course module id '([[:digit:]]+)'\\.")) )
   {
-
+    #pragma omp critical
     userid = anonymizer(match[1]);
     verbname = "commented"; //match[2];
     activityType = "submission";
     activity_id = match[6];
     attemptNumber = match[5];
+#pragma omp critical
     userWhoIsProcessed = anonymizer(match[1]);
   }
 
@@ -237,6 +249,7 @@ XAPI::ActivityEntry::ToXapiStatement()
                          regex("[Tt]he user with id '([[:digit:]]+)' has graded the submission '([[:digit:]]+)' for "
                                "the user with id '([[:digit:]]+)' for the assignment with course module id '([[:digit:]]+)'\\.")))
   {
+    #pragma omp critical
     userid = anonymizer(match[1]);
     activityType = "submission";
     verbname = "evaluated";
@@ -254,13 +267,18 @@ XAPI::ActivityEntry::ToXapiStatement()
                          regex("[Tt]he user with id '([[:digit:]]+)'( has)? ([[:alnum:]]+) (the submission|a file to the submission) with id '([[:digit:]]+)' (for|in) the assignment( activity)? with course module id '([[:digit:]]+)'\\.")) )
   {
     // assignment submission
+    #pragma omp critical
     userid = anonymizer(match[1]);
+    
     verbname = match[3];
 
     activityType = "submission";
     attemptNumber = match[5];
     activity_id = match[8];
+
+   #pragma omp critical
     userWhoIsProcessed = anonymizer(match[1]);
+    
     auto it = activityTypes.find("submission");
     extensions["http://id.tincanapi.com/extension/attempt-id"] = it->second + attemptNumber;
     
@@ -273,7 +291,8 @@ XAPI::ActivityEntry::ToXapiStatement()
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) (their|a file) submission (.*) the assignment with course module id '([[:digit:]]+)'\\.")) )
   {
-    // assignment submission
+
+#pragma omp critical
     userid = anonymizer(match[1]);
     verbname = match[2];
     activityType = "assignment";
@@ -288,6 +307,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the(ir)? attempt with id '([[:digit:]]+)' (marked as abandoned )?for the quiz with course module id '([[:digit:]]+)'\\.")) )
   {
+    #pragma omp critical
     userid = anonymizer(match[1]);
     verbname = match[2];
     if ( verbname == "had" ) verbname = "abandoned";
@@ -307,20 +327,25 @@ XAPI::ActivityEntry::ToXapiStatement()
                          regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the(ir)? (summary for the )?attempt with id '([[:digit:]]+)' ([[:alnum:]]+) (by|to) the user with id '([[:digit:]]+)' for the quiz with course module id '([[:digit:]]+)'\\.")) )
   {
     // preview, review, view attempt (summary)
+    #pragma omp critical
     userid = anonymizer(match[1]);
     verbname = match[2];
     if ( verbname == "had" )
     {
       verbname = match[6];
+      #pragma omp critical
       userid = anonymizer(match[8]);
+      #pragma omp critical
       userWhoIsProcessed = anonymizer(match[1]);
     }
     else
     {
+      #pragma omp critical
       userWhoIsProcessed = anonymizer(match[8]);
     }
      
     activityType = "quiz";
+    #pragma omp critical
     activity_id = anonymizer(match[9]);
     attemptNumber = match[5]; // quiz
 
@@ -328,11 +353,15 @@ XAPI::ActivityEntry::ToXapiStatement()
     stringstream processed_user_homepage;
     processed_user_homepage << activityTypes["homepage"] << userWhoIsProcessed;
      
-     
+    string tmp_username;
+    #pragma omp critical
+    {
+      tmp_username = UserIDToUserName[userWhoIsProcessed];
+    }
     // add user to statement related context
     json user = {
       { "objectType", "Agent"},
-      { "name", UserIDToUserName[userWhoIsProcessed]}, // todo fix username here as well
+      { "name", tmp_username}, // todo fix username here as well
       { "account",{}},
     };
     user["account"] = {
@@ -352,6 +381,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)' manually graded the question with id '([[:digit:]]+)' for the attempt with id '([[:digit:]]+)' for the quiz with course module id '([[:digit:]]+)'\\.")) )
   {
+    #pragma omp critical
     userid = anonymizer(match[1]);
     verbname = "evaluated";
     activityType = "submission";
@@ -369,6 +399,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the book with course module id '([[:digit:]]+)'\\.")) )
   {
+    #pragma omp critical
     userid = anonymizer(match[1]);
     verbname = match[2];
     activityType = "book";
@@ -378,6 +409,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)' viewed the recording with id '([[:digit:]]+)' for the Collab with course module id '([[:digit:]]+)'\\.")) )
   {
+    #pragma omp critical
     userid = anonymizer(match[1]);
     verbname = "viewed";
     activityType = "collaborate";
@@ -390,6 +422,7 @@ XAPI::ActivityEntry::ToXapiStatement()
                          regex("[Tt]he user with id '([[:digit:]]+)' viewed the chapter with id '([[:digit:]]+)' for the book with course module id '([[:digit:]]+)'\\.")) )
   {
     //chapter
+    #pragma omp critical
     userid = anonymizer(match[1]);
     verbname = "viewed";
     activityType = "book";
@@ -408,6 +441,7 @@ XAPI::ActivityEntry::ToXapiStatement()
                          regex("[Tt]he user with id '([[:digit:]]+)' has ([[:alnum:]]+) the discussion with id '([[:digit:]]+)' in the forum with (the )?course module id '([[:digit:]]+)'\\.")) )
   {
     //discussion
+    #pragma omp critical
     userid = anonymizer(match[1]);
     verbname = match[2];
     activityType = "discussion";
@@ -423,6 +457,7 @@ XAPI::ActivityEntry::ToXapiStatement()
                          regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the user with id '([[:digit:]]+)' using the enrolment method '(self|manual)' (in|from) the course with id '([[:digit:]]+)'\\.")) )
   {
     // user unenrolled, enrolled
+    #pragma omp critical
     userid = anonymizer(match[1]);
     verbname = match[2];
     userWhoIsProcessed = match[3];
@@ -430,20 +465,31 @@ XAPI::ActivityEntry::ToXapiStatement()
     activityType = "course";
     string method = match[4]; // self|manual
     activity_id = match[6]; 
-       
+
+
     if ( method != "self" ) // in case user was unenrolled by some other user
     {
       stringstream target_user_homepage;
-      target_user_homepage << activityTypes["homepage"] << anonymizer(userWhoIsProcessed);
+      #pragma omp critical
+      {
+	target_user_homepage << activityTypes["homepage"] << anonymizer(userWhoIsProcessed);
+      }
          
       // actor was the (un)enroller, actual user that was (un)enrolled needs to be set as actor.
+      string tmp_username; 
+      string tmp_userid;
+      #pragma omp critical
+      {
+	tmp_username = anonymizer(UserIDToUserName[userWhoIsProcessed]);
+	tmp_userid = anonymizer(userWhoIsProcessed);
+      }
       json target_user = {
         { "objectType", "Agent"},
-        { "name", anonymizer(UserIDToUserName[userWhoIsProcessed])}, // todo fix username here as well
+        { "name", tmp_username}, 
         { "account",{}},
       };
       target_user["account"] = {
-        {"name", anonymizer(userWhoIsProcessed) }, 
+        {"name", tmp_userid }, 
         {"homePage", target_user_homepage.str()}
       };
          
@@ -459,8 +505,10 @@ XAPI::ActivityEntry::ToXapiStatement()
                          regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the user with id '([[:digit:]]+)' (to|from) the discussion[[:blank:]]+with id '([[:digit:]]+)' in the forum with the course module id '([[:digit:]]+)'\\.")) )
   {
     // subscribed user to discussion
+#pragma omp critical
     userid = anonymizer(match[1]);
     verbname = match[2];
+#pragma omp critical
     userWhoIsProcessed = anonymizer(match[3]);
     activityType = "discussion";
     postNumber = match[5];
@@ -475,8 +523,10 @@ XAPI::ActivityEntry::ToXapiStatement()
   {
     // subscribed a user to forum
     // subscribed user to discussion
+#pragma omp critical
     userid = anonymizer(match[1]);
     verbname = match[2];
+#pragma omp critical
     userWhoIsProcessed = anonymizer(match[3]);
     activityType = "forum";
     activity_id = match[4];
@@ -494,8 +544,10 @@ XAPI::ActivityEntry::ToXapiStatement()
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)' has (created|posted content|updated|deleted) (in )?(the )?(forum )?post with id '([[:digit:]]+)' in the discussion (with id )?'([[:digit:]]+)' (located )?in the forum with (the )?course module id '([[:digit:]]+)'\\.")) )
   {
+#pragma omp critical
     userid = anonymizer(match[1]);
     verbname = "posted";
+#pragma omp critical
     userWhoIsProcessed = anonymizer(match[3]);
     activityType = "reply";
     postNumber = match[6];
@@ -521,6 +573,7 @@ XAPI::ActivityEntry::ToXapiStatement()
     auto it = contextModuleLocaleToActivityType.find(context_module_locale_specific);
     if ( it != contextModuleLocaleToActivityType.end())
     {
+#pragma omp critical
       userid = anonymizer(match[3]); // target user "completes" module
       activityType = it->second;
       verbname = "completed";
@@ -609,9 +662,11 @@ XAPI::ActivityEntry::ToXapiStatement()
   // The user with id '' viewed the list of users in the course with id ''.
   
   if ( username.empty() ) throw xapi_parsing_error("no username found for: " + description);
-  
-  UserNameToUserID[username] = userid;
-  UserIDToUserName[userid] = username;
+  #pragma omp critical
+  {
+    UserNameToUserID[username] = userid;
+    UserIDToUserName[userid] = username;
+  }
   
   ////////////////////  
   // construct actual user completing a task
@@ -695,6 +750,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   string xapiActivity = activityIt->second;
   // assign mapping for later use in grading log parsing.
   //cerr << "appending task '" << context << "' -> " << object_id << "\n";
+#pragma omp critical
   TaskNameToTaskID[context] = object_id;
     
   object = {
