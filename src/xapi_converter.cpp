@@ -197,7 +197,20 @@ XAPI::Application::ParseJSONEventLog()
   }
   activitylog >> tmp;
   activitylog.close();
-  json activities = tmp[0];
+  json activities;
+  
+  try
+  {
+    activities = tmp[0];
+  }
+  catch ( std::exception & ex )
+  {
+    stringstream ss;
+    ss << ex.what() << "\n"
+         << "Something is wrong with your JSON log file, it should be an array containing a single array of objects.\n";
+    throw runtime_error( ss.str());
+  }
+  
 
   Progress progress(0,activities.size());
   // for each log entry
