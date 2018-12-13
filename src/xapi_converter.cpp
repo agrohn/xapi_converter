@@ -753,16 +753,27 @@ int main( int argc, char **argv)
       cout << "course url: \"" << XAPI::StatementFactory::course_id << "\"\n";
       cout << "course name: \"" << XAPI::StatementFactory::course_name << "\"\n";
     }
-    // parse all config
-    ifstream configDetails("data/config.json");
-    json config;
-    configDetails >> config;
     
-    app.login.key = config["login"]["key"];
-    app.login.secret = config["login"]["secret"];
-    
-    // update URL prefices
-    app.lmsBaseURL = config["lms"]["baseURL"];
+    try
+    {
+      // parse all config
+      ifstream configDetails("data/config.json");
+      json config;
+      configDetails >> config;
+      
+      app.login.key = config["login"]["key"];
+      app.login.secret = config["login"]["secret"];
+      // update URL prefices
+      app.lmsBaseURL = config["lms"]["baseURL"];
+    }
+    catch (std::exception & ex )
+    {
+      cerr << ex.what() << "\n";
+      cerr << "Please check your config file, it has errors.\n";
+     
+      return 1;
+    }
+
     for(auto & a : activityTypes )
     {
       activityTypes[a.first] = app.lmsBaseURL + a.second;
