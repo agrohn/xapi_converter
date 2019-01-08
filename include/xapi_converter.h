@@ -83,7 +83,7 @@ namespace XAPI
     size_t end {0}; ///<batch end location in statements array.
     size_t size{0}; ///< batch size in bytes.
 
-    std::stringstream contents; ///< Batch contents to send.
+    std::string contents; ///< Batch contents to send.
     Progress progress;///< Batch progress status.
     std::string filename; ///< In case batch is loaded from disk, filename.
     
@@ -98,7 +98,7 @@ namespace XAPI
         size = other.size;
 
         progress = other.progress;
-        contents.str(other.contents.str());
+        contents = other.contents;
         filename = other.filename;
       }
       return *this;
@@ -111,7 +111,7 @@ namespace XAPI
       size = other.size;
 
       progress = other.progress;
-      contents.str(other.contents.str());
+      contents = other.contents;
       filename = other.filename;
     }
 

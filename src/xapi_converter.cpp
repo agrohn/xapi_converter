@@ -459,7 +459,16 @@ XAPI::Application::LoadBatches()
     batch.progress++;
 
     if ( omp_get_thread_num() == 0 ) DisplayBatchStates();
-    batch.contents << file.rdbuf();
+    batch.contents.reserve(fileSize);
+    // as shown here:
+    // https://stackoverflow.com/questions/2912520/read-file-contents-into-a-string-in-c
+    std::streambuf * raw_buffer = file.rdbuf();
+    char * buf = new char[fileSize];
+    raw_buffer->sgetn(buf,fileSize);
+    batch.contents.append(buf);
+    delete buf;
+    // now this would be the place to count also items so sending routine
+    // would report them correctly, but it would takes more time (json::parse)
     batch.progress++;
     file.close();
     
@@ -481,19 +490,19 @@ XAPI::Application::CreateBatches()
   {
     Batch & batch = batches[i];
     batch.progress.SetTotal( batch.end-batch.start );
-    batch.contents << "[";
+    batch.contents.append("[");
     for( size_t si=batch.start;si<batch.end;si++)
     {
 
-      batch.contents << statements[si];
-      if ( si < batch.end-1) batch.contents << ",";
+      batch.contents.append(statements[si]);
+      if ( si < batch.end-1) batch.contents.append(",");
       batch.progress++;
 
       if ( omp_get_thread_num() == 0 )
         DisplayBatchStates();
 
     }
-    batch.contents << "]";
+    batch.contents.append("]");
   }
   DisplayBatchStates();
   cerr << "\n";
@@ -575,7 +584,7 @@ XAPI::Application::SendBatches()
 
 	  
             UpdateThrobber(ss.str());
-            std::string batchContents = batch.contents.str();
+            std::string & batchContents = batch.contents;
             request.setOpt(new curlpp::options::PostFields(batchContents));
             request.setOpt(new curlpp::options::PostFieldSize(batchContents.length()));
             ostringstream response;
@@ -644,7 +653,7 @@ XAPI::Application::WriteBatchFiles()
   for( auto & batch : batches )
   {
     try {
-      std::string batchContents = batch.contents.str();
+      std::string & batchContents = batch.contents;
       stringstream ss;
       ss << "Writing batch " <<  count+1 << "/" << batches.size() << " (" << batchContents.length() << " bytes, #" << (batch.end - batch.start) << " statements)...";
       stringstream name;
@@ -668,7 +677,7 @@ XAPI::Application::PrintBatches() const
 {
   for(auto b : batches )
   {
-    cout << b.contents.str() << "\n";
+    cout << b.contents << "\n";
   }
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -741,7 +750,7 @@ XAPI::Application::LogStats()
   {
     cerr << "Batch " << e.first << ": "
          << "#" <<  e.second << " statements, "
-         << "size " <<  batches[e.first].size << "/" << batches[e.first].contents.str().length() << " bytes, "
+         << "size " <<  batches[e.first].size << "/" << batches[e.first].contents.length() << " bytes, "
          << "range " << batches[e.first].start << "-" << (batches[e.first].end-1)
          << "\n";
   }
