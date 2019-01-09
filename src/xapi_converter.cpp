@@ -15,6 +15,7 @@
 #include <chrono>
 #include <thread>
 #include <curlpp/Infos.hpp>
+#include <fstream>
 using json = nlohmann::json;
 using namespace std;
 //https://nithinkk.wordpress.com/2017/03/16/learning-locker/
@@ -24,6 +25,7 @@ std::map<std::string,int> errorMessages;
 string throbber = "|/-\\|/-\\";
 extern XAPI::Anonymizer anonymizer;
 #define DEFAULT_BATCH_FILENAME_PREFIX "batch_"
+#define DEFAULT_CONFIG_FILENAME "data/config.json"
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::Application::Application() : desc("Command-line tool for sending XAPI statements to learning locker from  Moodle logs\nReleased under GPLv3 - use at your own risk. \n\nPrerequisities:\n\tLearning locker client credentials must be in json format in data/config.json.\n\tSimple object { \"login\": { \"key\": \"\", \"secret\":\"\"}, \"lms\" : { \"baseURL\" : \"\" }\n\nUsage")
 {
@@ -58,8 +60,10 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   ("batch-max-statements", po::value<size_t>(),batchMaxStatementsDescription.c_str())
   ("batch-send-delay", po::value<size_t>(), batchSendDelay.c_str() )
   ("help", "print this help message.")
+  ("generate-config", "Generates configuration file template config.json.template to into current directory.")
+  ("config", po::value<string>(), "<filename> Loads configuration from given file instead of data/config.json" )
   ("print", "statements json is printed to stdout.");
-
+  
   throbberState = 0;
   batchFilenamePrefix = DEFAULT_BATCH_FILENAME_PREFIX;
   stats.startTime = chrono::system_clock::now();
@@ -82,6 +86,30 @@ XAPI::Application::ParseArguments( int argc, char **argv )
     PrintUsage();
     exit(0);
     //return false;
+  }
+
+  if ( vm.count("generate-config") > 0 )
+  {
+    // generate config template
+    json full = {
+      {
+	"login",  {
+	  {"key", "",},
+	  {"secret", "" }
+	}
+      },
+      {
+	"lms",{
+	  { "baseURL", "" }
+	}
+      }
+    };
+    // write over previous one with no remorse
+    ofstream file("config.json.template");
+    file << full.dump(2);
+    file.close();
+    exit(0);
+    
   }
   
   if ( vm.count("log") > 0 && vm.count("load") > 0 )
@@ -154,6 +182,12 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   if ( vm.count("errorlog"))
     errorFile = vm["errorlog"].as<string>();
 
+  // Use custom config or default if not specified.
+  if ( vm.count("config") > 0 )
+    configFile = vm["config"].as<string>();
+  else
+    configFile = DEFAULT_CONFIG_FILENAME;
+  
   if ( vm.count("batch-prefix") > 0)
   {
     batchFilenamePrefix = vm["batch-prefix"].as<string>();
@@ -787,8 +821,9 @@ int main( int argc, char **argv)
     
     try
     {
+      cout << "Loading config from " << app.configFile << "...\n";
       // parse all config
-      ifstream configDetails("data/config.json");
+      ifstream configDetails(app.configFile);
       json config;
       configDetails >> config;
       

@@ -133,6 +133,7 @@ namespace XAPI
     std::string errorFile;
     // base url for all activity ids URIs
     std::string lmsBaseURL;
+    std::string configFile;
     struct Login { 
       std::string key;
       std::string secret;
