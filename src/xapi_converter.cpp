@@ -25,7 +25,7 @@ string throbber = "|/-\\|/-\\";
 extern XAPI::Anonymizer anonymizer;
 #define DEFAULT_BATCH_FILENAME_PREFIX "batch_"
 ////////////////////////////////////////////////////////////////////////////////
-XAPI::Application::Application() : desc("Command-line tool for sending XAPI statements to learning locker from  Moodle logs\nReleased under GPLv3 - use at your own risk. \n\nPrerequisities:\n\tLearning locker client credentials must be in json format in data/config.json.\n\tSimple object { \"login\": { \"key\": \"\", \"secret\":\"\"}, \"lms\" : { \"baseURL\" : \"\" }\n\nUsage:\n")
+XAPI::Application::Application() : desc("Command-line tool for sending XAPI statements to learning locker from  Moodle logs\nReleased under GPLv3 - use at your own risk. \n\nPrerequisities:\n\tLearning locker client credentials must be in json format in data/config.json.\n\tSimple object { \"login\": { \"key\": \"\", \"secret\":\"\"}, \"lms\" : { \"baseURL\" : \"\" }\n\nUsage")
 {
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -57,7 +57,9 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   ("batch-max-bytes", po::value<size_t>(), batchMaxBytesDescription.c_str())
   ("batch-max-statements", po::value<size_t>(),batchMaxStatementsDescription.c_str())
   ("batch-send-delay", po::value<size_t>(), batchSendDelay.c_str() )
+  ("help", "print this help message.")
   ("print", "statements json is printed to stdout.");
+
   throbberState = 0;
   batchFilenamePrefix = DEFAULT_BATCH_FILENAME_PREFIX;
   stats.startTime = chrono::system_clock::now();
@@ -74,17 +76,23 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   namespace po = boost::program_options;
   po::store(po::parse_command_line(argc, argv, desc), vm);
   po::notify(vm);
-  // require at least 
 
+  if ( vm.count("help") > 0 )
+  {
+    PrintUsage();
+    exit(0);
+    //return false;
+  }
+  
   if ( vm.count("log") > 0 && vm.count("load") > 0 )
   {
-    cerr << "Error: --log or --load cannot be used same time!\n";
+    cerr << "Error: --log or --load cannot be used same time!\nPlease see usage with --help.\n";
     return false;
   }
   if ( vm.count("write") > 0 && vm.count("load") > 0 )
   {
     cerr << "Error: You want me to load files from disk and write them again? "
-         << "--write or --load cannot be used same time!\n"; 
+         << "--write or --load cannot be used same time!\nPlease see usage with --help.\n"; 
     return false;
   }
   else if ( vm.count("log") > 0 )
@@ -104,7 +112,7 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   }
   else
   {
-    cerr << "Error: using --log or --load is mandatory\n"; 
+    cerr << "Error: using --log or --load is mandatory\nPlease see usage with --help.\n"; 
     return false;
   }
 
@@ -117,7 +125,7 @@ XAPI::Application::ParseArguments( int argc, char **argv )
     // require course url only when log is specified.
     if ( load == false )
     {
-      cerr << "Error: courseurl is missing!\n";
+      cerr << "Error: courseurl is missing!\nPlease see usage with --help.\n";
       return false;
     }
   }
@@ -130,7 +138,7 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   {
     if ( load == false )
     {
-      cerr << "coursename missing\n";
+      cerr << "Error: coursename is missing!\nPlease see usage with --help.\n";
       return false;
     }
   }
@@ -166,6 +174,8 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   {
     sendDelayBetweenBatches = vm["batch-send-delay"].as<size_t>();
   }
+
+
   
   print = vm.count("print") > 0;
   write = vm.count("write") > 0;
@@ -766,7 +776,6 @@ int main( int argc, char **argv)
     XAPI::Application app;
     if ( app.ParseArguments(argc, argv) == false )
     {
-      app.PrintUsage();
       return 1;
     }
 
