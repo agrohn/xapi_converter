@@ -1,6 +1,7 @@
 #include <xapi_statementfactory.h>
 #include <xapi_activityentry.h>
 #include <xapi_grade.h>
+#include <xapi_assignmentinit.h>
 #include <cstdlib>
 using namespace std;
 using namespace XAPI;
@@ -10,12 +11,15 @@ std::map<std::string, std::string> UserNameToUserID = {};
 std::map<std::string, std::string> UserIDToUserName = {};
 std::string XAPI::StatementFactory::course_id = std::string();
 std::string XAPI::StatementFactory::course_name = std::string();
+std::string XAPI::StatementFactory::course_start_date = std::string();
+std::string XAPI::StatementFactory::course_end_date = std::string();
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::Anonymizer  anonymizer; 
 ////////////////////////////////////////////////////////////////////////////////
 const std::map<std::string, std::string> supportedVerbs = {
   /*{ "added", ""},*/
   { "assigned",""}, // ignore role assignments
+  { "authorized", "http://activitystrea.ms/schema/1.0/authorize"}, // when task / assignment is set. Used to make retrieving task lists easily. 
   { "created","http://activitystrea.ms/schema/1.0/create"},
   { "deleted","http://activitystrea.ms/schema/1.0/delete"},
   { "enrolled","http://activitystrea.ms/schema/1.0/join"},
@@ -72,9 +76,9 @@ std::map<std::string, std::string> activityTypes = {
   { "post", "/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
   { "reply", "/mod/forum/discuss.php?d="}, // needs to add #p<POST NUMBER>
   { "homepage", "/user/profile.php?id="}, // not really activity, just helps in creating user home page addresses.
-  { "label", "https://moodle.karelia.fi/course/modedit.php?update=" }, // unique ids for entire site labels, it seems
-  { "question", "https://moodle.karelia.fi/question/question.php?cmid=62172&id=" }, // edit URL
-  { "questionnaire", "https://moodle.karelia.fi/mod/questionnaire/view.php?id=" } 
+  { "label", "/course/modedit.php?update=" }, // unique ids for entire site labels, it seems
+  { "question", "/question/question.php?cmid=62172&id=" }, // edit URL
+  { "questionnaire", "/mod/questionnaire/view.php?id=" } 
 };
 // some heuristics to match completion state updates 
 const std::map<std::string, std::string> contextModuleLocaleToActivityType = {
@@ -169,6 +173,20 @@ XAPI::StatementFactory::CreateGradeEntry( const std::vector<std::string> & lineA
   e.course_id = course_id;
   e.course_name = course_name;
   e.Parse(lineAsVector);
+  return e.ToXapiStatement();
+}
+////////////////////////////////////////////////////////////////////////////////
+std::string
+XAPI::StatementFactory::CreateAssignmentInitEntry( const std::string & name, const std::string & id )
+{
+  AssignmentInitEntry e;
+  
+  // set from command line
+  e.course_id = course_id;
+  e.course_name = course_name;
+  e.name = name;
+  e.id = id;
+  e.ParseTimestamp(course_start_date);
   return e.ToXapiStatement();
 }
 ////////////////////////////////////////////////////////////////////////////////
