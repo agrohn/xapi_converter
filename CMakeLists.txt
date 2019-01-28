@@ -16,6 +16,7 @@ set(SOURCES
   src/xapi_grade.cpp
   src/xapi_entry.cpp
   src/xapi_activityentry.cpp
+  src/xapi_assignmentinit.cpp
   src/xapi_statementfactory.cpp
   src/base64_encode.cpp
   )
@@ -23,6 +24,7 @@ set(HEADERS
   include/json.hpp
   include/xapi_entry.h
   include/xapi_activityentry.h
+  include/xapi_assignmentinit.h
   include/xapi_grade.h
   include/xapi_errors.h
   include/xapi_statementfactory.h
