@@ -66,6 +66,8 @@ namespace XAPI
   {
     std::string courseurl;
     std::string coursename;
+    std::string courseStartDate;
+    std::string courseEndDate;
   };
   
   struct Statistics
@@ -150,6 +152,8 @@ namespace XAPI
     bool write{false};
     bool load{false};
     bool anonymize{false};
+    bool makeAssignments{false}; ///< should assignment authorized events be created.
+    
     size_t maxStatementsInBatch{DEFAULT_BATCH_STATEMENT_COUNT_CAP};
     std::string batchFilenamePrefix;
     Application();
@@ -160,6 +164,7 @@ namespace XAPI
 
     void ParseJSONEventLog();
     void ParseGradeLog();
+    void CreateAssignments();
     
     void ComputeBatchSizes();
     void LoadBatches();
@@ -173,7 +178,8 @@ namespace XAPI
     bool ShouldPrint() const;
     bool ShouldWrite() const;
     bool ShouldLoad() const;
-
+    bool ShouldMakeAssignments() const;
+    
     void UpdateThrobber(const std::string & msg = "");
     void DisplayBatchStates();
     void LogErrors();

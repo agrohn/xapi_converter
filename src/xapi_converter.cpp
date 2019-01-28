@@ -59,6 +59,8 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   ("batch-max-bytes", po::value<size_t>(), batchMaxBytesDescription.c_str())
   ("batch-max-statements", po::value<size_t>(),batchMaxStatementsDescription.c_str())
   ("batch-send-delay", po::value<size_t>(), batchSendDelay.c_str() )
+  ("authorize-assignments", "if defined, assignment authorization events will be created." )
+  ("course-start", po::value<string>(), "<date> Course start date in format YYYY-MM-DD." )
   ("help", "print this help message.")
   ("generate-config", "Generates configuration file template config.json.template to into current directory.")
   ("config", po::value<string>(), "<filename> Loads configuration from given file instead of data/config.json" )
@@ -208,8 +210,27 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   {
     sendDelayBetweenBatches = vm["batch-send-delay"].as<size_t>();
   }
-
-
+  
+  if ( vm.count("authorize-assignments") > 0 ) 
+  {
+    if ( vm.count("course-start") == 0 )
+    {
+      cerr << "Error: authorize-assignments requires course start date!\nPlease see usage with --help.\n";
+      return false;
+    }
+    makeAssignments = true;
+  }
+  
+  
+  if ( vm.count("course-start") > 0)
+  {
+    context.courseStartDate = vm["course-start"].as<std::string>();
+  }
+  
+  if ( vm.count("course-end") > 0 )
+  {
+    context.courseEndDate = vm["course-end"].as<std::string>();
+  }
   
   print = vm.count("print") > 0;
   write = vm.count("write") > 0;
@@ -218,7 +239,8 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   
   XAPI::StatementFactory::course_id   = context.courseurl;
   XAPI::StatementFactory::course_name = context.coursename;
-  
+  XAPI::StatementFactory::course_start_date = context.courseStartDate;
+  XAPI::StatementFactory::course_end_date = context.courseEndDate;
   return true;
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -414,6 +436,15 @@ XAPI::Application::ParseGradeLog()
     //cout << "\n----------------------" << endl;
   }
   gradinglog.close();
+}
+////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::Application::CreateAssignments()
+{
+  for( auto & it : TaskNameToTaskID )
+  {
+    statements.push_back(XAPI::StatementFactory::CreateAssignmentInitEntry( it.first, it.second ));
+  }
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
@@ -757,6 +788,11 @@ XAPI::Application::ShouldLoad() const
 {
   return load;
 }
+bool
+XAPI::Application::ShouldMakeAssignments() const
+{
+  return makeAssignments;
+}
 void
 XAPI::Application::UpdateThrobber(const std::string & msg )
 {
@@ -848,8 +884,8 @@ int main( int argc, char **argv)
     app.UpdateThrobber();
     if ( app.HasLogData())    app.ParseJSONEventLog();
     if ( app.HasGradeData())  app.ParseGradeLog();
+    if ( app.ShouldMakeAssignments()) app.CreateAssignments();
     
-
     if ( app.ShouldLoad())
     {
       app.LoadBatches();
