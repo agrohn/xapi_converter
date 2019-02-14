@@ -160,7 +160,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   
 
   if ( regex_search(description, match,
-                         regex("[Tt]he user with id '([[:digit:]]+)' (has )?([[:alnum:]]+) (a |the )?(backup|grades|old course|submission status page|course participation report|grading form|grading table|live log|singleview report|tour|question category|user report).*")))
+                         regex("[Tt]he user with id '([[:digit:]]+)' (has )?([[:alnum:]]+) (a |the )?(backup|grades|old course|course participation report|grading form|grading table|live log|singleview report|tour|question category|user report).*")))
   {
     string tmp = match[3];
     throw xapi_activity_ignored_error(tmp+":(backup/grades/old course/submission status page)");
@@ -287,16 +287,17 @@ XAPI::ActivityEntry::ToXapiStatement()
     "The user with id '' viewed their submission for the assignment with course module id ''."
     "The user with id '' created a file submission and uploaded '' file/s in the assignment with course module id ''."
     "The user with id '' updated a file submission and uploaded '' file/s in the assignment with course module id ''."
+    "The user with id '' has viewed the submission status page for the assignment with course module id ''."
   */
   else if ( regex_search(description, match,
-                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) (their|a file) submission (.*) the assignment with course module id '([[:digit:]]+)'\\.")) )
+                         regex("[Tt]he user with id '([[:digit:]]+)' (has )*([[:alnum:]]+) (their|a file|the) submission (.*) the assignment with course module id '([[:digit:]]+)'\\.")) )
   {
 
 #pragma omp critical
     userid = anonymizer(match[1]);
-    verbname = match[2];
+    verbname = match[3];
     activityType = "assignment";
-    activity_id = match[5];
+    activity_id = match[6];
   
   }
   /*
