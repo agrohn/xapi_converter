@@ -749,10 +749,13 @@ XAPI::ActivityEntry::ToXapiStatement()
   if ( activityIt == moodleXapiActivity.end()) throw xapi_activity_type_not_supported_error(moodleActivity);
   
   string xapiActivity = activityIt->second;
-  // assign mapping for later use in grading log parsing.
-  //cerr << "appending task '" << context << "' -> " << object_id << "\n";
+  // assign task map for later use in grading log parsing.
+  if ( xapiActivity == "http://id.tincanapi.com/activitytype/school-assignment" )
+  {
 #pragma omp critical
-  TaskNameToTaskID[context] = object_id;
+    TaskNameToTaskID[context] = object_id;    
+  }
+
     
   object = {
     { "objectType", "Activity"},
