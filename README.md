@@ -1,38 +1,12 @@
 # xAPI converter
 
-Application that convertes moodle logs into xAPI statements.
+Application that converts Moodle logs into xAPI statements and sends them into LRS.
 
-Anssi Gröhn (c) 2018.
+Anssi GrÃ¶hn (c) 2018-2019
 
 (firstname lastname at karelia dot fi)
 
-## MongoDB related stuff on server
 
-Looking at statements
-
-```
-# mongo
-# use learninglocker_v2
-# db.statements.find()
-```
-
-Drop all statements
-```
-# mongo
-# use learninglocker_v2
-# db.statements.remove({})
-```
-
-## Related documentation
-
-[Submitting discussion statements ](http://xapiquarterly.com/2016/10/instrumenting-xapi-in-forums-discussion-groups/)
-[xAPI Verb registry](https://registry.tincanapi.com/)
-[Activity Schema](https://github.com/activitystreams/activity-schema/blob/master/activity-schema.md)
-
-# Moodlerooms logs
-
-Obtain logs: Course maintenance -> Reports -> Logs.
-Obtain grade history: Choose "Grader raport", then view "grade history", load and export into json.
 
 
 
