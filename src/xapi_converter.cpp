@@ -652,9 +652,13 @@ XAPI::Application::SendBatches()
             if ( responseCode != 0)
             {
               ss << "(attempt " << attemptNumber << ") ";
-            } 
+            }
+            if ( batch.filename.empty() ) 
+              ss << (batch.end - batch.start) << " statements ";
+            else
+              ss << batch.filename  << " ";
 
-            ss << (batch.end - batch.start) << " statements ";
+                    
             ss << "(" << batch.size << "B)"   << "...";
 
 	  
