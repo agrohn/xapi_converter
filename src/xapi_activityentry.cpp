@@ -741,7 +741,10 @@ XAPI::ActivityEntry::ToXapiStatement()
   {
     stringstream ss;
     ss << object_id << "&userid=" << userWhoIsProcessed;
-    object_id = ss.str();
+    // target extension holds proper moodle url to open user submission.
+    // assignment url will be kept as such (without userid part)
+    // so we may map submissions to specific assignments in mongodb queries.
+    extensions["http://id.tincanapi.com/extension/target"] = ss.str();
   }
   /* find proper Xapi activity type */ 
   string moodleActivity = it->first;

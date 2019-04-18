@@ -64,7 +64,7 @@ std::map<std::string, std::string> activityTypes = {
   { "lti", "/mod/lti/view.php?id=" },
   { "course", "/course/view.php?id="},
   { "assignment", "/mod/assign/view.php?id=" },
-  { "submission", "/mod/assign/view.php?id=" }, // submissions are for assignments, needs to add  &userid=<USER ID>. Extensions will hold unique moodle id for submission.
+  { "submission", "/mod/assign/view.php?id=" }, // submissions are for assignments. Extensions will hold unique moodle id for submission (attempt-id, target)
   { "lesson", "/mod/lesson/view.php?id=" },
   { "section", "/course/view.php?id=" }, // needs to add also #section-<NUMBER>
   { "hvp", "/mod/hvp/view.php?id=" },
