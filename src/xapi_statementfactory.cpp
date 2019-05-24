@@ -19,7 +19,8 @@ XAPI::Anonymizer  anonymizer;
 const std::map<std::string, std::string> supportedVerbs = {
   /*{ "added", ""},*/
   { "assigned",""}, // ignore role assignments
-  { "authorized", "http://activitystrea.ms/schema/1.0/authorize"}, // when task / assignment is set. Used to make retrieving task lists easily. 
+  { "authorized", "http://activitystrea.ms/schema/1.0/authorize"}, // when task / assignment is set. Used to make retrieving task lists easily.
+  { "answered", "http://adlnet.gov/expapi/verbs/answered" },
   { "created","http://activitystrea.ms/schema/1.0/create"},
   { "deleted","http://activitystrea.ms/schema/1.0/delete"},
   { "enrolled","http://activitystrea.ms/schema/1.0/join"},
@@ -35,8 +36,7 @@ const std::map<std::string, std::string> supportedVerbs = {
   { "submitted", "http://activitystrea.ms/schema/1.0/submit"},
   // { "attempted", "http://adlnet.gov/expapi/verbs/attempted"},
   { "scored", "http://adlnet.gov/expapi/verbs/scored" },
-  /*{ "uploaded", ""},
-    { "launched", ""},*/
+  /* { "launched", ""},*/
   { "reviewed", "http://id.tincanapi.com/verb/reviewed" },
   { "subscribed", "http://activitystrea.ms/schema/1.0/follow"},
   { "unsubscribed", "http://activitystrea.ms/schema/1.0/stop-following"},
@@ -78,14 +78,21 @@ std::map<std::string, std::string> activityTypes = {
   { "homepage", "/user/profile.php?id="}, // not really activity, just helps in creating user home page addresses.
   { "label", "/course/modedit.php?update=" }, // unique ids for entire site labels, it seems
   { "question", "/question/question.php?cmid=62172&id=" }, // edit URL
-  { "questionnaire", "/mod/questionnaire/view.php?id=" } 
+  { "questionnaire", "/mod/questionnaire/view.php?id=" },
+  { "feedback", "/mod/feedback/view.php?id=" },
+  { "chat", "/mod/chat/view.php?id=" }
 };
 // some heuristics to match completion state updates 
 const std::map<std::string, std::string> contextModuleLocaleToActivityType = {
-  { "Sivu",       "page" },
-  { "Tentti",      "quiz"},
-  { "H5P",         "hvp" },
-  { "Ohjeteksti", "label"} 
+  { "Sivu",             "page" },
+  { "Tentti",           "quiz"},
+  { "H5P",              "hvp" },
+  { "Ohjeteksti",       "label"},
+  { "Keskustelualue",   "forum"},
+  { "Palaute",          "feedback"},
+  { "Tehtävä",          "assignment"},
+  /*{ "Tiedosto",         "file" }, these do not have purpose atm*/
+  { "Verkko-osoite",    "url" }
 };
 
 const std::map<std::string, std::string> moodleXapiActivity = {
@@ -113,7 +120,10 @@ const std::map<std::string, std::string> moodleXapiActivity = {
   { "label", "http://activitystrea.ms/schema/1.0/note"},
   { "submission", "http://id.tincanapi.com/activitytype/school-assignment"},
   { "question", "http://activitystrea.ms/schema/1.0/question" },
-  { "questionnaire", "http://id.tincanapi.com/activitytype/survey" }
+  { "questionnaire", "http://id.tincanapi.com/activitytype/survey" },
+  /* { "file", "http://activitystrea.ms/schema/1.0/file" }, this does not have purpose atm */
+  { "feedback", "http://id.tincanapi.com/activitytype/survey" },
+  { "chat", "http://id.tincanapi.com/activitytype/chat-channel" }
 
 };
 ////////////////////////////////////////////////////////////////////////////////
