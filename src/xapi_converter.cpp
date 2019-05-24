@@ -267,7 +267,15 @@ XAPI::Application::ParseJSONEventLog()
   
   try
   {
-    activities = tmp[0];
+    // Prepare for differences between moodle versions
+    if ( tmp.is_array() && tmp.size() == 1)
+    {
+      activities = tmp[0];
+    }
+    else
+    {
+      activities = tmp;
+    }
   }
   catch ( std::exception & ex )
   {
@@ -276,7 +284,6 @@ XAPI::Application::ParseJSONEventLog()
          << "Something is wrong with your JSON log file, it should be an array containing a single array of objects.\n";
     throw runtime_error( ss.str());
   }
-  
 
   Progress progress(0,activities.size());
   // for each log entry
@@ -397,7 +404,15 @@ XAPI::Application::ParseGradeLog()
   gradinglog >> tmp;
   // This is a bit hack-ish, reading as json,
   // which returns it as array that contains one array containing log data.
-  json grading = tmp[0];
+  json grading;
+  if ( tmp.is_array() && tmp.size() == 1 )
+  {
+    grading = tmp[0];
+  }
+  else
+  {
+    grading = tmp;
+  }
   // for each log entry
   int entries_without_result = 0;
   Progress progress(0,grading.size());
