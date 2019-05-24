@@ -19,7 +19,7 @@ XAPI::ActivityEntry::ParseTimestamp(const string & strtime)
   //ss >> std::get_time(&when, "%d.%m.%Y %H:%M:%S");
       
   std::vector<string> tokens;
-  boost::split( tokens, strtime, boost::is_any_of(". :"));
+  boost::split( tokens, strtime, boost::is_any_of(". :/,"));
   {
     stringstream ss;
     ss << tokens.at(0);
@@ -39,20 +39,28 @@ XAPI::ActivityEntry::ParseTimestamp(const string & strtime)
     }
   }
   {
+    
     stringstream ss;
+    // for english locale representation
+    if ( tokens.at(2).size() == 2 )
+      ss << "20";
     ss << tokens.at(2);
     if ( !(ss >> when.tm_year)  ) throw runtime_error("Conversion error, year");
   }
-      
+  int currentToken = 3;
   {
+    // this works around with english locale (dd/mm/yy, hh:mm) since we define ',' as a delimeter.
     stringstream ss;
-    ss << tokens.at(3);
+    if ( tokens.at(currentToken).empty())
+      currentToken++;
+    ss << tokens.at(currentToken);
     if ( !(ss >> when.tm_hour)  ) throw runtime_error("Conversion error, hour");
   }
       
   {
+    currentToken++;
     stringstream ss;
-    ss << tokens.at(4);
+    ss << tokens.at(currentToken);
     if ( !(ss >> when.tm_sec)  ) throw runtime_error("Conversion error, second");
   }
       
