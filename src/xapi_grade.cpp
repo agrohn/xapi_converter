@@ -34,7 +34,19 @@ const std::map<std::string,int> monthValues= {
   { "syyskuuta", 9},
   { "lokakuuta", 10},
   { "marraskuuta", 11},
-  { "joulukuuta", 12}
+  { "joulukuuta", 12},
+  { "January", 1},
+  { "February", 2},
+  { "March", 3},
+  { "April", 4},
+  { "May", 5},
+  { "June", 6},
+  { "July", 7},
+  { "August", 8},
+  { "September", 9},
+  { "October", 10},
+  { "November", 11},
+  { "December", 12}
 };
 ////////////////////////////////////////////////////////////////////////////////
 void
