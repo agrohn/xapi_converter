@@ -168,8 +168,9 @@ XAPI::ActivityEntry::ToXapiStatement()
   /*
     "The user with id '' created the '' activity with course module id ''."
   */
+    
   if ( regex_search(description, match,
-                    regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the '(quiz|page|collaborate|resource|url|forum|hsuforum|lti|hvp|book|label|questionnaire|assign)' activity with course module id '([[:digit:]]+)'\\.")) )
+                    regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the '(quiz|page|collaborate|resource|url|forum|hsuforum|lti|hvp|book|label|questionnaire|assign|chat|feedback)' activity with course module id '([[:digit:]]+)'\\.")) )
   {
 
     #pragma omp critical
@@ -182,13 +183,28 @@ XAPI::ActivityEntry::ToXapiStatement()
     
   }
   /*
+    "The user with id '' has sent a message in the chat with course module id ''."
+  */
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' has sent a message in the chat with course module id[[:space:]]*'([[:digit:]]+)'\\.")) )
+  {
+
+    #pragma omp critical
+    userid = anonymizer(match[1]);
+
+    verbname = "commented";
+    activityType = "chat";
+    activity_id = match[2];
+    
+  }
+  /*
     "The user with id '' created section number '' for the course with id ''"
     "The user with id '' updated section number '' for the course with id ''"
     "The user with id '' viewed the section number '' of the course with id ''."
     "The user with id '' deleted section number '' (section name 'Siirretyt materiaalit ') for the course with id ''"
   */
   else if ( regex_search(description, match,
-                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) (the )?section number '([[:digit:]]+)' (\\(section name '.+'\\) )?(for|of) the course with id '[[:digit:]]+'.*")))
+                         regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) (the )?section number '(-?[[:digit:]]+)' (\\(section name '.+'\\) )?(for|of) the course with id '[[:digit:]]+'.*")))
   {
     #pragma omp critical
     userid = anonymizer(match[1]);
@@ -258,10 +274,23 @@ XAPI::ActivityEntry::ToXapiStatement()
     userWhoIsProcessed = match[3];
     extensions["http://id.tincanapi.com/extension/attempt-id"] = attemptNumber;
   }
-    /*
+  /* "The user with id '' submitted response for 'feedback' activity with course module id ''."*/
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '([[:digit:]]+)' submitted response for 'feedback' activity with course module id '([[:digit:]]+)'\\.")))
+  {
+    #pragma omp critical
+    userid = anonymizer(match[1]);
+    activityType = "feedback";
+    // although this does not match the actual verb, feedback is represented
+    // as a 'survey' which is 'completed'.
+    verbname = "completed"; 
+    activity_id = match[2];
+  }
+
+
+  /*
     "The user with id '' has submitted the submission with id '' for the assignment with course module id ''."
     "The user with id '' has uploaded a file to the submission with id '' in the assignment activity with course module id ''."     
-
   */
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)'( has)? ([[:alnum:]]+) (the submission|a file to the submission) with id '([[:digit:]]+)' (for|in) the assignment( activity)? with course module id '([[:digit:]]+)'\\.")) )
@@ -288,16 +317,24 @@ XAPI::ActivityEntry::ToXapiStatement()
     "The user with id '' created a file submission and uploaded '' file/s in the assignment with course module id ''."
     "The user with id '' updated a file submission and uploaded '' file/s in the assignment with course module id ''."
     "The user with id '' has viewed the submission status page for the assignment with course module id ''."
+  
+    "The user with id '' created an online text submission with '' words in the assignment with course module id ''."
+    "The user with id '' updated an online text submission with '' words in the assignment with course module id ''."
+    "The user with id '' has saved an online text submission with id '' in the assignment activity with course module id ''."
+
   */
   else if ( regex_search(description, match,
-                         regex("[Tt]he user with id '([[:digit:]]+)' (has )*([[:alnum:]]+) (their|a file|the) submission (.*) the assignment with course module id '([[:digit:]]+)'\\.")) )
+                         regex("[Tt]he user with id '([[:digit:]]+)' (has )*([[:alnum:]]+) (their|a file|the|an online text) submission (.*) the assignment (activity )?with course module id '([[:digit:]]+)'\\.")) )
   {
 
 #pragma omp critical
     userid = anonymizer(match[1]);
+
     verbname = match[3];
+    if ( verbname != "viewed" )
+      verbname = "answered";
     activityType = "assignment";
-    activity_id = match[6];
+    activity_id = match[7];
   
   }
   /*
@@ -621,7 +658,7 @@ XAPI::ActivityEntry::ToXapiStatement()
     throw xapi_activity_ignored_error("viewed:report");
   }
   else if ( regex_search(description, match,
-			 regex("[Tt]he user with id '([[:digit:]]+)' viewed the (recent activity|report|edit page|Open Grader|instance list|list of users|list of resources) .*")))
+			 regex("[Tt]he user with id '([[:digit:]]+)' (has )?viewed the (sessions of the chat|recent activity|report|edit page|Open Grader|instance list|list of users|list of resources) .*")))
   {
     throw xapi_activity_ignored_error("viewed:(various reports)");
   }
@@ -631,7 +668,7 @@ XAPI::ActivityEntry::ToXapiStatement()
     throw xapi_activity_ignored_error("(un)assigned:(role)");
   }
   else if ( regex_search(description, match,
-			 regex("Kohde luotiin tunnuksella.*|Kohde \\(tunnus [[:digit:]]+\\) poistettiin.")))
+			 regex("Kohde luotiin tunnuksella.*|Kohde luotu ID-numerolla.*|Kohde \\(tunnus [[:digit:]]+\\) poistettiin.|Kohde ID-numerolla [[:digit:]]+ poistettu.")))
   {
     throw xapi_activity_ignored_error("created/deleted:target(localized))");
   }
