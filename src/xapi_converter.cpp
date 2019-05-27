@@ -25,7 +25,7 @@ std::map<std::string,int> errorMessages;
 string throbber = "|/-\\|/-\\";
 extern XAPI::Anonymizer anonymizer;
 #define DEFAULT_BATCH_FILENAME_PREFIX "batch_"
-#define DEFAULT_CONFIG_FILENAME "data/config.json"
+#define DEFAULT_CONFIG_FILENAME "config.json"
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::Application::Application() : desc("Command-line tool for sending XAPI statements to learning locker from  Moodle logs\nReleased under GPLv3 - use at your own risk. \n\nPrerequisities:\n\tLearning locker client credentials must be in json format in data/config.json.\n\tSimple object { \"login\": { \"key\": \"\", \"secret\":\"\"}, \"lms\" : { \"baseURL\" : \"\" }\n\nUsage")
 {
@@ -52,7 +52,8 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
   ("send", po::value<string>(), "<addr> learning locker server hostname or ip. If not defined, performs dry run.")
   ("errorlog", po::value<string>(), "<errorlog> where error information is printed.")
-  ("write", "statements json files are written to local directory.")
+  ("write", "statements json files are written to output directory (by default working directory).")
+  ("output-dir", po::value<string>(), "<path> directory where json files will be written to.")
   ("load", po::value<std::vector<string> >()->multitoken(), "<file1.json> [<file2.json> ...] Statement json files are loaded to memory from disk. Cannot be used same time with --logs.")
   ("anonymize", "Should user data be anonymized.")
   ("batch-prefix", po::value<string>(), "<string> file name prefix to be used while writing statement json files to disk.")
@@ -67,6 +68,7 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   ("print", "statements json is printed to stdout.");
   
   throbberState = 0;
+  outputDir = ".";
   batchFilenamePrefix = DEFAULT_BATCH_FILENAME_PREFIX;
   stats.startTime = chrono::system_clock::now();
 }
@@ -234,6 +236,11 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   
   print = vm.count("print") > 0;
   write = vm.count("write") > 0;
+
+  if ( write && vm.count("output-dir") > 0 )
+  {
+    outputDir = vm["output-dir"].as<std::string>();
+  }
   anonymize = vm.count("anonymize") > 0;
   anonymizer.enabled = anonymize;
   
@@ -752,7 +759,7 @@ XAPI::Application::WriteBatchFiles()
       ss << "Writing batch " <<  count+1 << "/" << batches.size() << " (" << batchContents.length() << " bytes, #" << (batch.end - batch.start) << " statements)...";
       stringstream name;
       // ensure there are always zero-filled counter for easier sorting
-      name << batchFilenamePrefix << setfill('0') << setw(paddingWidth) << count << ".json";
+      name << outputDir << "/" << batchFilenamePrefix << setfill('0') << setw(paddingWidth) << count << ".json";
       UpdateThrobber(ss.str());
       ofstream out(name.str());
       if ( !out ) throw runtime_error("Could not open file: '" + name.str() + "'");

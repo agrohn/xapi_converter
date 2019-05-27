@@ -133,6 +133,7 @@ namespace XAPI
     std::string gradeData;
     std::string learningLockerURL;
     std::string errorFile;
+    std::string outputDir;
     // base url for all activity ids URIs
     std::string lmsBaseURL;
     std::string configFile;
