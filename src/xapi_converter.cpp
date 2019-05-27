@@ -703,7 +703,7 @@ XAPI::Application::SendBatches()
               UpdateThrobber(ss.str());
               attemptNumber++;
 	    
-              ofstream file("curl.log", std::fstream::app);
+              ofstream file(outputDir+std::string("curl.log"), std::fstream::app);
               file << response.str() << "\n";
               file.close();
             }
