@@ -473,7 +473,16 @@ void
 XAPI::Application::ComputeBatchSizes()
 {
   Batch batch;
-  Progress p(0,statements.size());
+  Progress p(0,std::max(statements.size(),(size_t)1));
+  if ( statements.empty() )
+  {
+    stringstream ss;
+    ss << "Computing batches " << batches.size() << " [" << std::string(p+=1)+"%]...";
+    this->UpdateThrobber(ss.str());
+    stats.numBatches = batches.size();
+    return;
+  }
+
 
   // Each batch is an array, so it has at least '[' and ']' + first statement.
   batch.size = 2 + statements[0].length();
@@ -834,7 +843,7 @@ XAPI::Application::LogErrors()
 {
   if ( errorFile.length() > 0 )
   {
-    ofstream err(errorFile);
+    ofstream err(outputDir+"/"+errorFile);
     err << "Run yielded " << errorMessages.size() << " different errors.\n";
     if ( err.is_open() == false) throw new std::runtime_error("Cannot open error log file: "+ errorFile );
     
