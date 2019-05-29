@@ -131,6 +131,7 @@ namespace XAPI
     int throbberState;
     std::string data;
     std::string gradeData;
+    std::string userData;
     std::string learningLockerURL;
     std::string errorFile;
     std::string outputDir;
@@ -165,6 +166,8 @@ namespace XAPI
 
     void ParseJSONEventLog();
     void ParseGradeLog();
+    void ParseUsers();
+    
     void CreateAssignments();
     
     void ComputeBatchSizes();
@@ -175,6 +178,8 @@ namespace XAPI
     void PrintBatches() const;
     bool HasGradeData() const;
     bool HasLogData() const;
+    bool HasUserData() const;
+    
     bool IsDryRun() const;
     bool ShouldPrint() const;
     bool ShouldWrite() const;

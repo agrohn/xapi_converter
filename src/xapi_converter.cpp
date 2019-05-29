@@ -47,7 +47,8 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   // options 
   desc.add_options()
   ("log", po::value<string>(), "<YOUR-LOG-DATA.json> Actual course log data in JSON format")
-  ("grades", po::value<string>(), "<YOUR-GRADE_DATA.json>  Grade history data obtained from moodle")
+  ("grades", po::value<string>(), "<YOUR-GRADE-DATA.json>  Grade history data obtained from moodle")
+  ("users", po::value<string>(), "<YOUR-USERS-DATA.json>  User (participant) data obtained from moodle")
   ("courseurl", po::value<string>(), "<course_url> Unique course moodle web address, ends in ?id=xxxx")
   ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
   ("send", po::value<string>(), "<addr> learning locker server hostname or ip. If not defined, performs dry run.")
@@ -151,7 +152,9 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   if ( vm.count("grades") )
     gradeData = vm["grades"].as<string>();
 
-
+  if ( vm.count("users") )
+    userData = vm["users"].as<string>();
+  
   if ( vm.count("courseurl") == 0)
   {
     // require course url only when log is specified.
@@ -458,6 +461,34 @@ XAPI::Application::ParseGradeLog()
     //cout << "\n----------------------" << endl;
   }
   gradinglog.close();
+}
+////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::Application::ParseUsers()
+{
+  json users;
+  ifstream usersFile(userData.c_str());
+  if ( !usersFile.is_open())
+  {
+    stringstream ss;
+    ss << "Cannot open file '" << userData << "'\n";
+    throw xapi_parsing_error( ss.str());
+  }
+  usersFile >> users;
+  Progress progress(0,users.size());
+  cerr << "\n";
+
+  for(auto it = users.begin(); it != users.end(); ++it)
+  {
+    UpdateThrobber("Parsing users ["+std::string(progress++)+"%]...");
+
+    json user = *it;
+    string name = user["name"];
+    string userid = user["id"];
+    string email = user["email"];
+    XAPI::StatementFactory::CacheUser(name, userid, email);
+  }
+  usersFile.close();
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
@@ -804,6 +835,12 @@ XAPI::Application::HasLogData() const
 }
 ////////////////////////////////////////////////////////////////////////////////
 bool
+XAPI::Application::HasUserData() const
+{
+  return !userData.empty();
+}
+////////////////////////////////////////////////////////////////////////////////
+bool
 XAPI::Application::IsDryRun() const
 {
   return learningLockerURL.empty();
@@ -917,6 +954,7 @@ int main( int argc, char **argv)
     }
     
     app.UpdateThrobber();
+    if ( app.HasUserData())   app.ParseUsers();
     if ( app.HasLogData())    app.ParseJSONEventLog();
     if ( app.HasGradeData())  app.ParseGradeLog();
     if ( app.ShouldMakeAssignments()) app.CreateAssignments();

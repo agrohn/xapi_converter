@@ -153,6 +153,19 @@ XAPI::StatementFactory::CacheUser( const std::vector<std::string> & lineAsVector
   e.UpdateUserData();
 }
 ////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::StatementFactory::CacheUser( const std::string & name,
+                                   const std::string & userid,
+                                   const std::string & email)
+{
+#pragma omp critical
+    {
+      string userid = anonymizer(userid);
+      UserNameToUserID[anonymizer(name)] = userid;
+      UserIDToUserName[userid] = anonymizer(name);
+    }
+}
+////////////////////////////////////////////////////////////////////////////////
 std::string
 XAPI::StatementFactory::CreateActivity( const std::string & line )
 {
