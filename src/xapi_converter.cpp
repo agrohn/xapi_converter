@@ -143,11 +143,6 @@ XAPI::Application::ParseArguments( int argc, char **argv )
       batches.back().filename = filename;
     }
   }
-  else
-  {
-    cerr << "Error: using --log or --load is mandatory\nPlease see usage with --help.\n"; 
-    return false;
-  }
 
   if ( vm.count("grades") )
     gradeData = vm["grades"].as<string>();
