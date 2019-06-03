@@ -16,6 +16,7 @@
 #include <thread>
 #include <curlpp/Infos.hpp>
 #include <fstream>
+#include <sys/stat.h>
 using json = nlohmann::json;
 using namespace std;
 //https://nithinkk.wordpress.com/2017/03/16/learning-locker/
@@ -585,8 +586,11 @@ XAPI::Application::LoadBatches()
     
     if ( file.is_open() == false )
       throw runtime_error("cannot open batch file for reading '" + batch.filename  + "'");
-    
-    ifstream::pos_type fileSize = file.tellg();
+
+    struct stat st;
+    stat(batch.filename.c_str(), &st);
+    unsigned long fileSize = st.st_size;
+
     file.seekg(0, ios::beg);
     batch.progress++;
 
@@ -595,7 +599,8 @@ XAPI::Application::LoadBatches()
     // as shown here:
     // https://stackoverflow.com/questions/2912520/read-file-contents-into-a-string-in-c
     std::streambuf * raw_buffer = file.rdbuf();
-    char * buf = new char[fileSize];
+    char * buf = new char[fileSize+1];
+    buf[fileSize] = '\0';
     raw_buffer->sgetn(buf,fileSize);
     batch.contents.append(buf);
     delete buf;
@@ -738,8 +743,11 @@ XAPI::Application::SendBatches()
               UpdateThrobber(ss.str());
               attemptNumber++;
 	    
-              ofstream file(outputDir+std::string("curl.log"), std::fstream::app);
+              ofstream file(outputDir+"/"+std::string("curl.log"), std::fstream::app);
               file << response.str() << "\n";
+	      file << "\n--- failed batch contents BEGIN ---\n";
+	      file << batchContents;
+	      file << "\n--- failed batch contents END ---\n";
               file.close();
             }
             else
