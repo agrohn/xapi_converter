@@ -68,7 +68,7 @@ $ xapi_converter --users users.json <other options>
 
 ## Anonymizing data
 
-Anonymization option attempts to obfuscate course particpant names and id numbers from data before sending it to learing locker. Anonymization works on course level, so if you send data from different courses, particpant data most likely will *not** match between them.
+Anonymization option attempts to obfuscate course particpant names and id numbers from data before sending it to learing locker. Anonymization works on course level, so if you send data from different courses, particpant data most likely will **not** match between them.
 
 Passing anonymization option to xapi_converter:
 
