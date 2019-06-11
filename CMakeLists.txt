@@ -32,10 +32,6 @@ set(HEADERS
   include/xapi_anonymizer.h
   )
 add_executable( xapi_converter ${HEADERS} ${SOURCES} )
-# Copy data to build
-file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(xapi_converter ${LIBS})
-include(CTest)
-add_test(SimpleTest xapi_converter "data/simple.csv" "YOUR_LEARNINGLOCKER_SERVER")
 message( STATUS ${CMAKE_CXX_FLAGS})
 add_executable( json_prettifier src/json_prettifier.cpp)
