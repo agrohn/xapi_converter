@@ -9,7 +9,7 @@ Anssi Gröhn (c) 2018-2019
 # Ubuntu 18.04 prerequirements
 
 ```bash
-$ sudo apt install build-essentials libboost-program-options-dev libcurl4-gnutls libcurlpp0 libcurlpp-dev gcc-8 cmake
+$ sudo apt install libboost-program-options-dev libcurl4-gnutls-dev libcurlpp0 libcurlpp-dev gcc-8 cmake pkg-config
 $ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 700 --slave /usr/bin/g++ g++ /usr/bin/g++-7
 $ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 800 --slave /usr/bin/g++ g++ /usr/bin/g++-8
 ```
