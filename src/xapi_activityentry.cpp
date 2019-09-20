@@ -815,7 +815,8 @@ XAPI::ActivityEntry::ToXapiStatement()
   
   string xapiActivity = activityIt->second;
   // assign task map for later use in grading log parsing.
-  if ( xapiActivity == "http://id.tincanapi.com/activitytype/school-assignment" )
+  if ( xapiActivity == "http://id.tincanapi.com/activitytype/school-assignment" ||
+       verbname == "completed" )
   {
 #pragma omp critical
     TaskNameToTaskID[context] = object_id;    
