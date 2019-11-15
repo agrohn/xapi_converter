@@ -29,6 +29,7 @@ extern const std::map<std::string, std::string> contextModuleLocaleToActivityTyp
 extern std::map<std::string, std::string> TaskNameToTaskID;
 extern std::map<std::string, std::string> UserNameToUserID;
 extern std::map<std::string, std::string> UserIDToUserName;
+extern std::map<std::string, std::string> UserIDToEmail;
 extern XAPI::Anonymizer  anonymizer;
 ////////////////////////////////////////////////////////////////////////////////
 namespace XAPI

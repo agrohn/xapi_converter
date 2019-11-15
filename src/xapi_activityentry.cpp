@@ -735,16 +735,18 @@ XAPI::ActivityEntry::ToXapiStatement()
   // construct actual user completing a task
   stringstream  homepage;
   homepage << activityTypes["homepage"] << userid;
+  stringstream mbox;
+  mbox << "mailto:" << UserIDToEmail[userid];
   actor = {
     {"objectType", "Agent"},
     {"name", username},
-    {"account",{}},
-    
+    {"mbox", mbox.str()},
   };
-  actor["account"] = {
+  
+  /*  actor["account"] = {
     {"name", userid }, 
     {"homePage", homepage.str()}
-  };
+    };*/
 
   ////////////////////
   // constuct verb in statement

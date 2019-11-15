@@ -26,6 +26,7 @@ using namespace XAPI;
 std::map<std::string, std::string> TaskNameToTaskID = {};
 std::map<std::string, std::string> UserNameToUserID = {};
 std::map<std::string, std::string> UserIDToUserName = {};
+std::map<std::string, std::string> UserIDToEmail = {};
 std::string XAPI::StatementFactory::course_id = std::string();
 std::string XAPI::StatementFactory::course_name = std::string();
 std::string XAPI::StatementFactory::course_start_date = std::string();
@@ -180,6 +181,8 @@ XAPI::StatementFactory::CacheUser( const std::string & name,
       string userid = anonymizer(userid);
       UserNameToUserID[anonymizer(name)] = userid;
       UserIDToUserName[userid] = anonymizer(name);
+      // This is the only point where email can be set - this makes users json file obligatory from now on.
+      UserIDToEmail[userid] = anonymizer(email);
     }
 }
 ////////////////////////////////////////////////////////////////////////////////
