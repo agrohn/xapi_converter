@@ -128,9 +128,17 @@ XAPI::ActivityEntry::UpdateUserData()
   {
 #pragma omp critical
     {
-      string userid = anonymizer(match[1]);
-      UserNameToUserID[anonymizer(username)] = userid;
+      string userid = match[1];
+      
+      UserNameToUserID[username] = anonymizer(userid);
       UserIDToUserName[userid] = anonymizer(username);
+      // What about email!? Cannot work like this 
+      if ( UserIDToEmail.find(userid) == UserIDToEmail.end())
+      {
+
+        UserIDToEmail[userid] = UserIDToUserName[userid]+std::string("@UNKNOWN.ADDRESS");
+        //throw xapi_cached_user_not_found_error( userid + std::string(" ") + username );
+      }
     }
   }
 }
@@ -543,7 +551,7 @@ XAPI::ActivityEntry::ToXapiStatement()
       string tmp_userid;
       #pragma omp critical
       {
-	tmp_username = anonymizer(UserIDToUserName[userWhoIsProcessed]);
+	tmp_username = UserIDToUserName[userWhoIsProcessed];
 	tmp_userid = anonymizer(userWhoIsProcessed);
       }
       json target_user = {
