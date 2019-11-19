@@ -178,8 +178,7 @@ XAPI::StatementFactory::CacheUser( const std::string & name,
 {
 #pragma omp critical
     {
-      string userid = anonymizer(userid);
-      UserNameToUserID[anonymizer(name)] = userid;
+      UserNameToUserID[name] = anonymizer(userid);
       UserIDToUserName[userid] = anonymizer(name);
       // This is the only point where email can be set - this makes users json file obligatory from now on.
       UserIDToEmail[userid] = anonymizer(email);
