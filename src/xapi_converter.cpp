@@ -162,13 +162,17 @@ XAPI::Application::ParseArguments( int argc, char **argv )
 
   if ( vm.count("grades") )
     gradeData = vm["grades"].as<string>();
-
+  
+  if ( vm.count("users" ))
+  {
+    userData = vm["users"].as<string>();
+  }
+  // users should always be set for conversion
   if ( vm.count("users") == 0 && vm.count("load") == 0)
   {
     cerr << "Error: users file is not set!\nPlease see usage with --help.\n";
     return false;
   }
-  userData = vm["users"].as<string>();
   
   if ( vm.count("courseurl") == 0)
   {
