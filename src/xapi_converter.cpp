@@ -163,7 +163,7 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   if ( vm.count("grades") )
     gradeData = vm["grades"].as<string>();
 
-  if ( vm.count("users") == 0)
+  if ( vm.count("users") == 0 && vm.count("load") == 0)
   {
     cerr << "Error: users file is not set!\nPlease see usage with --help.\n";
     return false;
