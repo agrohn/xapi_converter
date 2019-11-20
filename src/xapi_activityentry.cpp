@@ -136,7 +136,7 @@ XAPI::ActivityEntry::UpdateUserData()
       if ( UserIDToEmail.find(userid) == UserIDToEmail.end())
       {
 
-        UserIDToEmail[userid] = UserIDToUserName[userid]+std::string("@UNKNOWN.ADDRESS");
+        UserIDToEmail[userid] = "user.unknown@unknownaddress.net";
         //throw xapi_cached_user_not_found_error( userid + std::string(" ") + username );
       }
     }
