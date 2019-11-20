@@ -420,26 +420,8 @@ XAPI::ActivityEntry::ToXapiStatement()
     activity_id = anonymizer(match[9]);
     attemptNumber = match[5]; // quiz
 
-     
-    stringstream processed_user_homepage;
-    processed_user_homepage << activityTypes["homepage"] << userWhoIsProcessed;
-     
-    string tmp_username;
-    #pragma omp critical
-    {
-      tmp_username = UserIDToUserName[userWhoIsProcessed];
-    }
     // add user to statement related context
-    json user = {
-      { "objectType", "Agent"},
-      { "name", tmp_username}, // todo fix username here as well
-      { "account",{}},
-    };
-    user["account"] = {
-      {"name", userWhoIsProcessed }, 
-      {"homePage", processed_user_homepage.str()}
-    };
-
+    json user = CreateActorJson(userWhoIsProcessed);
     auto it = activityTypes.find("attempt");
      
     // add to related context
@@ -540,30 +522,8 @@ XAPI::ActivityEntry::ToXapiStatement()
 
     if ( method != "self" ) // in case user was unenrolled by some other user
     {
-      stringstream target_user_homepage;
-      #pragma omp critical
-      {
-	target_user_homepage << activityTypes["homepage"] << anonymizer(userWhoIsProcessed);
-      }
-         
       // actor was the (un)enroller, actual user that was (un)enrolled needs to be set as actor.
-      string tmp_username; 
-      string tmp_userid;
-      #pragma omp critical
-      {
-	tmp_username = UserIDToUserName[userWhoIsProcessed];
-	tmp_userid = anonymizer(userWhoIsProcessed);
-      }
-      json target_user = {
-        { "objectType", "Agent"},
-        { "name", tmp_username}, 
-        { "account",{}},
-      };
-      target_user["account"] = {
-        {"name", tmp_userid }, 
-        {"homePage", target_user_homepage.str()}
-      };
-         
+      json target_user = CreateActorJson(userWhoIsProcessed);
       // add (un)enroller to related context
       extensions["http://id.tincanapi.com/extension/target"] = target_user;
     }
@@ -741,20 +701,8 @@ XAPI::ActivityEntry::ToXapiStatement()
   
   ////////////////////  
   // construct actual user completing a task
-  stringstream  homepage;
-  homepage << activityTypes["homepage"] << userid;
-  stringstream mbox;
-  mbox << "mailto:" << UserIDToEmail[userid];
-  actor = {
-    {"objectType", "Agent"},
-    {"name", username},
-    {"mbox", mbox.str()},
-  };
   
-  /*  actor["account"] = {
-    {"name", userid }, 
-    {"homePage", homepage.str()}
-    };*/
+  actor = CreateActorJson(userid);
 
   ////////////////////
   // constuct verb in statement

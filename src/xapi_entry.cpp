@@ -18,6 +18,8 @@
 #include <xapi_entry.h>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
+extern std::map<std::string, std::string> UserIDToUserName;
+extern std::map<std::string, std::string> UserIDToEmail;
 using namespace boost;
 using json = nlohmann::json;
 using namespace std;
@@ -44,3 +46,26 @@ XAPI::Entry::GetTimestamp() const
   return ss.str();
 }
 ////////////////////////////////////////////////////////////////////////////////
+nlohmann::json
+XAPI::Entry::CreateActorJson( const std::string & userid )
+{
+
+  json user;
+  string email;
+  string username;
+
+  // in case some thread is modifying a map
+  #pragma omp critical
+  {
+    email = string("mailto:")+UserIDToEmail[userid];
+    username = UserIDToUserName[userid];
+  }
+  // build json 
+  user = {
+            { "objectType", "Agent"},
+            { "name", username },
+            { "mbox", email }
+  };
+  
+  return user;
+}

@@ -64,6 +64,6 @@ namespace XAPI
     std::string GetTimestamp() const;
 
     virtual std::string ToXapiStatement() = 0;
-
+    virtual nlohmann::json CreateActorJson( const std::string & userid );
   };
 }

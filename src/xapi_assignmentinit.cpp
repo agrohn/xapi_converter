@@ -66,23 +66,12 @@ XAPI::AssignmentInitEntry::ToXapiStatement()
   json object;
 
   
-  stringstream	homepage;
+  // fake user id
   string userid = "0";
-  // "-" denotes system username.
-  string username = "-"; 
-  homepage << activityTypes["homepage"] << userid;
-  
+
   // define user receiving a score
-  actor = {
-    {"objectType", "Agent"},
-    {"name", username},
-    {"account",
-     {
-       {"name", userid },
-       {"homePage", homepage.str() }
-     }
-    }
-  };
+  actor = CreateActorJson(userid);
+
   // construct verb
   string verbname = "authorized";
   auto it = supportedVerbs.find(verbname);

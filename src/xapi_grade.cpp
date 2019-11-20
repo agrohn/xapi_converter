@@ -172,21 +172,10 @@ XAPI::GradeEntry::ToXapiStatement()
   {
     throw xapi_cached_user_not_found_error(username);
   }
-  stringstream	homepage;
-  string userid = UserNameToUserID[username];
-  homepage << activityTypes["homepage"] << userid;
 
+  string userid = UserNameToUserID[username];
   // define user receiving a score
-  actor = {
-    {"objectType", "Agent"},
-    {"name", username},
-    {"account",
-     {
-       {"name", userid },
-       {"homePage", homepage.str() }
-     }
-    }
-  };
+  actor = CreateActorJson(userid);
   // construct scoring verb
   string verbname = "scored";
   auto it = supportedVerbs.find(verbname);
