@@ -693,12 +693,8 @@ XAPI::ActivityEntry::ToXapiStatement()
   // The user with id '' viewed the list of users in the course with id ''.
   
   if ( username.empty() ) throw xapi_parsing_error("no username found for: " + description);
-  #pragma omp critical
-  {
-    UserNameToUserID[username] = userid;
-    UserIDToUserName[userid] = username;
-  }
-  
+
+
   ////////////////////  
   // construct actual user completing a task
   
