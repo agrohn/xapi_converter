@@ -16,6 +16,7 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include <xapi_entry.h>
+#include <xapi_errors.h>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 extern std::map<std::string, std::string> UserIDToUserName;
@@ -53,10 +54,12 @@ XAPI::Entry::CreateActorJson( const std::string & userid )
   json user;
   string email;
   string username;
-
+  
   // in case some thread is modifying a map
   #pragma omp critical
   {
+    if ( UserIDToEmail.find(userid) == UserIDToEmail.end()) throw xapi_cached_user_not_found_error(userid);
+    if ( UserIDToUserName.find(userid) == UserIDToUserName.end()) throw xapi_cached_user_not_found_error(userid);
     email = string("mailto:")+UserIDToEmail[userid];
     username = UserIDToUserName[userid];
   }
