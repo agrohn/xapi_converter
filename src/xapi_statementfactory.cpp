@@ -27,6 +27,8 @@ std::map<std::string, std::string> TaskNameToTaskID = {};
 std::map<std::string, std::string> UserNameToUserID = {};
 std::map<std::string, std::string> UserIDToUserName = {};
 std::map<std::string, std::string> UserIDToEmail = {};
+std::map<std::string, std::vector<std::string>> UserIDToRoles = {};
+
 std::string XAPI::StatementFactory::course_id = std::string();
 std::string XAPI::StatementFactory::course_name = std::string();
 std::string XAPI::StatementFactory::course_start_date = std::string();
@@ -36,7 +38,7 @@ XAPI::Anonymizer  anonymizer;
 ////////////////////////////////////////////////////////////////////////////////
 const std::map<std::string, std::string> supportedVerbs = {
   /*{ "added", ""},*/
-  { "assigned",""}, // ignore role assignments
+  { "assigned","http://activitystrea.ms/schema/1.0/assign"}, 
   { "authorized", "http://activitystrea.ms/schema/1.0/authorize"}, // when task / assignment is set. Used to make retrieving task lists easily.
   { "answered", "http://adlnet.gov/expapi/verbs/answered" },
   { "created","http://activitystrea.ms/schema/1.0/create"},
@@ -174,7 +176,8 @@ XAPI::StatementFactory::CacheUser( const std::vector<std::string> & lineAsVector
 void
 XAPI::StatementFactory::CacheUser( const std::string & name,
                                    const std::string & userid,
-                                   const std::string & email)
+                                   const std::string & email,
+                                   const std::vector<std::string> & roles)
 {
 #pragma omp critical
     {
@@ -182,6 +185,7 @@ XAPI::StatementFactory::CacheUser( const std::string & name,
       UserIDToUserName[userid] = anonymizer(name);
       // This is the only point where email can be set - this makes users json file obligatory from now on.
       UserIDToEmail[userid] = anonymizer(email);
+      UserIDToRoles[userid] = roles;
     }
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -227,6 +231,20 @@ XAPI::StatementFactory::CreateAssignmentInitEntry( const std::string & name, con
   e.course_id = course_id;
   e.course_name = course_name;
   e.name = name;
+  e.id = id;
+  e.ParseTimestamp(course_start_date);
+  return e.ToXapiStatement();
+}
+////////////////////////////////////////////////////////////////////////////////
+std::string
+XAPI::StatementFactory::CreateRoleAssignEntry( const std::string & id, const std::vector<std::string> & roles )
+{
+  AssignmentInitEntry e;
+  
+  // set from command line
+  e.course_id = course_id;
+  e.course_name = course_name;
+  e.name = UserIDToUserName[name];
   e.id = id;
   e.ParseTimestamp(course_start_date);
   return e.ToXapiStatement();

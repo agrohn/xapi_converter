@@ -36,9 +36,10 @@ namespace XAPI
     static std::string CreateActivity( const std::vector<std::string> & lineAsVector );
     static std::string CreateGradeEntry( const std::vector<std::string> & lineAsVector );
     static std::string CreateAssignmentInitEntry( const std::string & name, const std::string & id );
+    static std::string CreateRoleAssignEntry( const std::string & id, const std::vector<std::string> & roles );
     static void CacheUser( const std::vector<std::string> & lineAsVector );
     static void CacheUser( const std::string & moodleLogLine );
-    static void CacheUser( const std::string & name, const std::string & userid, const std::string & email);
+    static void CacheUser( const std::string & name, const std::string & userid, const std::string & email, const std::vector<std::string> & roles );
   };
 }
 ////////////////////////////////////////////////////////////////////////////////

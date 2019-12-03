@@ -27,6 +27,13 @@ typedef boost::tokenizer< boost::escaped_list_separator<char> > Tokenizer;
 using namespace boost;
 using json = nlohmann::json;
 using namespace std;
+
+enum MoodleRole {
+                 kTeacher=3,
+                 kNonEditingTeacher=4,
+                 kStudents=5
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 void
 XAPI::ActivityEntry::ParseTimestamp(const string & strtime)
@@ -618,6 +625,37 @@ XAPI::ActivityEntry::ToXapiStatement()
       
     // We also assume that you update completion status only to "completed" one.
   }
+  else if ( regex_search(description, match,
+			 regex("[Tt]he user with id '([[:digit:]]+)' (un)?assigned the role with id '([[:digit:]]+)' (to|from) the user with id '([[:digit:]]+)'\\.")))
+  {
+    // role assigning
+    if ( match[2] != "" )
+    {
+      throw xapi_activity_ignored_error("unassigned:(role)");
+    }
+    else
+    {
+      userid=anonymizer(match[1]);
+      verbname = "assigned";
+      userWhoIsProcessed=anonymizer(match[5]);
+      string roleStr=match[3];
+      stringstream ss;
+      int role_id;
+      ss << roleStr;
+      if ( !(ss >> role_id)) throw xapi_parsing_error("Could not convert role type to integer!");
+      
+      switch( role_id )
+      {
+      case kTeacher:
+      case kNonEditingTeacher:
+      case kStudent:
+      default:
+        break;
+      }
+      // TODO
+    }
+    
+  }
   else if ( regex_search(description, match, regex("User ([[:digit:]]+) (updated|created) the question ([[:digit:]]+)\\.")))
   {
     verbname = match[2];
@@ -654,11 +692,6 @@ XAPI::ActivityEntry::ToXapiStatement()
 			 regex("[Tt]he user with id '([[:digit:]]+)' (has )?viewed the (sessions of the chat|recent activity|report|edit page|Open Grader|instance list|list of users|list of resources) .*")))
   {
     throw xapi_activity_ignored_error("viewed:(various reports)");
-  }
-  else if ( regex_search(description, match,
-			 regex("[Tt]he user with id '([[:digit:]]+)' (un)?assigned the role with id '([[:digit:]]+)' (to|from) the user with id '([[:digit:]]+)'\\.")))
-  {
-    throw xapi_activity_ignored_error("(un)assigned:(role)");
   }
   else if ( regex_search(description, match,
 			 regex("Kohde luotiin tunnuksella.*|Kohde luotu ID-numerolla.*|Kohde \\(tunnus [[:digit:]]+\\) poistettiin.|Kohde ID-numerolla [[:digit:]]+ poistettu.")))
