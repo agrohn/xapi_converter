@@ -100,7 +100,8 @@ std::map<std::string, std::string> activityTypes = {
   { "question", "/question/question.php?cmid=62172&id=" }, // edit URL
   { "questionnaire", "/mod/questionnaire/view.php?id=" },
   { "feedback", "/mod/feedback/view.php?id=" },
-  { "chat", "/mod/chat/view.php?id=" }
+  { "chat", "/mod/chat/view.php?id=" },
+  { "role", "/user/profile.php?id="} 
 };
 // some heuristics to match completion state updates 
 const std::map<std::string, std::string> contextModuleLocaleToActivityType = {
@@ -143,8 +144,9 @@ const std::map<std::string, std::string> moodleXapiActivity = {
   { "questionnaire", "http://id.tincanapi.com/activitytype/survey" },
   /* { "file", "http://activitystrea.ms/schema/1.0/file" }, this does not have purpose atm */
   { "feedback", "http://id.tincanapi.com/activitytype/survey" },
-  { "chat", "http://id.tincanapi.com/activitytype/chat-channel" }
-
+  { "chat", "http://id.tincanapi.com/activitytype/chat-channel" },
+  { "role", "http://id.tincanapi.com/activitytype/security-role" }
+  
 };
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::StatementFactory::StatementFactory()
