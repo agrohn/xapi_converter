@@ -783,7 +783,9 @@ XAPI::ActivityEntry::ToXapiStatement()
   auto it = activityTypes.find(activityType);
   if ( it == activityTypes.end()) throw xapi_activity_type_not_supported_error(verbname+":"+activityType+"' with statement '"+description);
   string object_id = it->second + activity_id;
-  
+  // mark role as object id directly 
+  if ( activityType == "role" ) object_id = activity_id;
+
   // handle special cases
   if ( it->first == "section" )
   {
@@ -838,13 +840,19 @@ XAPI::ActivityEntry::ToXapiStatement()
       }
     }
   };
-  /* http://id.tincanapi.com/activitytype/document */
-  /* http://adlnet.gov/expapi/activities/media */
   
-  object["definition"]["name"] =  {
-    {"en-GB", context}
-  };   
-
+  // set human-readable description
+  if ( activityType == "role" )
+  {
+    object["definition"]["name"] =  {
+       {"en-GB", "Security Role"}
+    };
+  }
+  else {
+    object["definition"]["name"] =  {
+       {"en-GB", context}
+    };
+  }
   
   // construct full xapi statement
   statement["actor"] = actor;
