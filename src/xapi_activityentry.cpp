@@ -31,7 +31,7 @@ using namespace std;
 enum MoodleRole {
                  kTeacher=3,
                  kNonEditingTeacher=4,
-                 kStudents=5
+                 kStudent=5
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -644,19 +644,25 @@ XAPI::ActivityEntry::ToXapiStatement()
       stringstream ss;
       int role_id;
       ss << roleStr;
-      if ( !(ss >> role_id)) throw xapi_parsing_error("Could not convert role type to integer!");
+      if ( !(ss >> role_id)) throw xapi_parsing_error(string("Could not convert role type '")+roleStr+string("' to integer!"));
 
       string role;
       switch( role_id )
       {
       case kTeacher:
         role = "Teacher";
+        break;
       case kNonEditingTeacher:
-        role = "Non-Editing Teacher"
+        role = "Non-Editing Teacher";
+        break;
       case kStudent:
-        role = "Student"
+        role = "Student";
+        break;
       default:
-        throw xapi_parsing_error("Could not find proper role mapping");
+        {
+
+          throw xapi_parsing_error(string("Could not find proper role mapping for ")+roleStr);
+        }
         break;
       }
       // We'll use activity id as role identifier
