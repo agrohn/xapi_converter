@@ -172,7 +172,7 @@ namespace XAPI
     bool load{false};
     bool anonymize{false};
     bool makeAssignments{false}; ///< should assignment authorized events be created.
-    bool makeRoles{false}; ///< Should roles assigning events be created.
+
     size_t maxStatementsInBatch{DEFAULT_BATCH_STATEMENT_COUNT_CAP};
     std::string batchFilenamePrefix;
     Application();
@@ -186,7 +186,6 @@ namespace XAPI
     void ParseUsers();
     
     void CreateAssignments();
-    void CreateRoles();
     
     void ComputeBatchSizes();
     void LoadBatches();
@@ -203,7 +202,6 @@ namespace XAPI
     bool ShouldWrite() const;
     bool ShouldLoad() const;
     bool ShouldMakeAssignments() const;
-    bool ShouldMakeRoles() const;
     void UpdateThrobber(const std::string & msg = "");
     void DisplayBatchStates();
     void LogErrors();

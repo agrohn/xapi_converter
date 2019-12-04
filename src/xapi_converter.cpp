@@ -78,7 +78,6 @@ XAPI::Application::Application() : desc("Command-line tool for sending XAPI stat
   ("batch-max-statements", po::value<size_t>(),batchMaxStatementsDescription.c_str())
   ("batch-send-delay", po::value<size_t>(), batchSendDelay.c_str() )
   ("authorize-assignments", "if defined, assignment authorization events will be created." )
-  ("assign-roles", "if defined, user role assigning events will be created." )
   ("course-start", po::value<string>(), "<date> Course start date in format YYYY-MM-DD." )
   ("help", "print this help message.")
   ("generate-config", "Generates configuration file template config.json.template to into current directory.")
@@ -246,17 +245,7 @@ XAPI::Application::ParseArguments( int argc, char **argv )
     makeAssignments = true;
   }
 
-  if ( vm.count("assign-roles") > 0 )
-  {
-    if ( vm.count("course-start") == 0 )
-    {
-      cerr << "Error: assign-roles requires course start date!\nPlease see usage with --help.\n";
-      return false;
-    }
-    makeRoles = true;
-  }
-
-  
+ 
   
   if ( vm.count("course-start") > 0)
   {
@@ -529,15 +518,6 @@ XAPI::Application::CreateAssignments()
   for( auto & it : TaskNameToTaskID )
   {
     statements.push_back(XAPI::StatementFactory::CreateAssignmentInitEntry( it.first, it.second ));
-  }
-}
-////////////////////////////////////////////////////////////////////////////////
-void
-XAPI::Application::CreateRoles()
-{
-  for( auto & it : UserIDToRoles )
-  {
-    statements.push_back(XAPI::StatementFactory::CreateRoleAssignEntry(it.first, it.second));
   }
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -913,11 +893,6 @@ XAPI::Application::ShouldMakeAssignments() const
 {
   return makeAssignments;
 }
-bool
-XAPI::Application::ShouldMakeRoles() const
-{
-  return makeRoles;
-}
 void
 XAPI::Application::UpdateThrobber(const std::string & msg )
 {
@@ -1011,7 +986,6 @@ int main( int argc, char **argv)
     if ( app.HasLogData())    app.ParseJSONEventLog();
     if ( app.HasGradeData())  app.ParseGradeLog();
     if ( app.ShouldMakeAssignments()) app.CreateAssignments();
-    if ( app.ShouldMakeRoles()) app.CreateRoles();
     if ( app.ShouldLoad())
     {
       app.LoadBatches();
