@@ -629,48 +629,48 @@ XAPI::ActivityEntry::ToXapiStatement()
 			 regex("[Tt]he user with id '([[:digit:]]+)' (un)?assigned the role with id '([[:digit:]]+)' (to|from) the user with id '([[:digit:]]+)'\\.")))
   {
     // role assigning
-    if ( match[2] != "" )
-    {
-      throw xapi_activity_ignored_error("unassigned:(role)");
-    }
-    else
-    {
-      userid=anonymizer(match[1]);
-      verbname = "assigned";
-      userWhoIsProcessed=anonymizer(match[5]);
-      activityType = "role";
 
-      string roleStr=match[3];
-      stringstream ss;
-      int role_id;
-      ss << roleStr;
-      if ( !(ss >> role_id)) throw xapi_parsing_error(string("Could not convert role type '")+roleStr+string("' to integer!"));
-
-      string role;
-      switch( role_id )
+    userid=anonymizer(match[1]);
+    verbname = "assigned";
+    userWhoIsProcessed=anonymizer(match[5]);
+    activityType = "role";
+    bool isStartingPoint = ( match[2] == "" ) ? true : false;
+    string roleStr=match[3];
+    stringstream ss;
+    int role_id;
+    ss << roleStr;
+    if ( !(ss >> role_id)) throw xapi_parsing_error(string("Could not convert role type '")+roleStr+string("' to integer!"));
+    
+    string role;
+    switch( role_id )
+    {
+    case kTeacher:
+      role = "Teacher";
+      break;
+    case kNonEditingTeacher:
+      role = "Non-Editing Teacher";
+      break;
+    case kStudent:
+      role = "Student";
+      break;
+    default:
       {
-      case kTeacher:
-        role = "Teacher";
-        break;
-      case kNonEditingTeacher:
-        role = "Non-Editing Teacher";
-        break;
-      case kStudent:
-        role = "Student";
-        break;
-      default:
-        {
-
-          throw xapi_parsing_error(string("Could not find proper role mapping for ")+roleStr);
-        }
-        break;
+        
+        throw xapi_parsing_error(string("Could not find proper role mapping for ")+roleStr);
       }
-      // We'll use activity id as role identifier
-      activity_id = role;
-      json targetUser = CreateActorJson(userWhoIsProcessed);
-      extensions["http://id.tincanapi.com/extension/target"] = targetUser;
-      
+      break;
     }
+    // We'll use activity id as role identifier
+    activity_id = role;
+    json targetUser = CreateActorJson(userWhoIsProcessed);
+    extensions["http://id.tincanapi.com/extension/target"] = targetUser;
+    // Since xapi registry does not know verb "unassign", we need some trickery to identify when particular role
+    // has been removed. Each role assigning has now starting point, unassigning is interpreted as assigning
+    // but with ending point. This makes it handy to check whether role is still set (via max timestamp and extension type)
+    if ( isStartingPoint )
+      extensions["http://id.tincanapi.com/extension/starting-point"] = true;
+    else
+      extensions["http://id.tincanapi.com/extension/ending-point"] = true;
     
   }
   else if ( regex_search(description, match, regex("User ([[:digit:]]+) (updated|created) the question ([[:digit:]]+)\\.")))
