@@ -783,8 +783,6 @@ XAPI::ActivityEntry::ToXapiStatement()
   auto it = activityTypes.find(activityType);
   if ( it == activityTypes.end()) throw xapi_activity_type_not_supported_error(verbname+":"+activityType+"' with statement '"+description);
   string object_id = it->second + activity_id;
-  // mark role as object id directly 
-  if ( activityType == "role" ) object_id = activity_id;
 
   // handle special cases
   if ( it->first == "section" )
@@ -845,7 +843,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   if ( activityType == "role" )
   {
     object["definition"]["name"] =  {
-       {"en-GB", "Security Role"}
+       {"en-GB", activity_id}
     };
   }
   else {
