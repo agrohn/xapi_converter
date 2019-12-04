@@ -186,6 +186,7 @@ namespace XAPI
     void ParseUsers();
     
     void CreateAssignments();
+    void CreateRoles();
     
     void ComputeBatchSizes();
     void LoadBatches();

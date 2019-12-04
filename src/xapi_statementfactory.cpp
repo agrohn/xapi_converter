@@ -246,7 +246,7 @@ XAPI::StatementFactory::CreateRoleAssignEntry( const std::string & id, const std
   // set from command line
   e.course_id = course_id;
   e.course_name = course_name;
-  e.name = UserIDToUserName[name];
+  e.name = UserIDToUserName[id];
   e.id = id;
   e.ParseTimestamp(course_start_date);
   return e.ToXapiStatement();

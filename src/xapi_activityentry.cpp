@@ -31,7 +31,7 @@ using namespace std;
 enum MoodleRole {
                  kTeacher=3,
                  kNonEditingTeacher=4,
-                 kStudents=5
+                 kStudent=5
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -652,9 +652,9 @@ XAPI::ActivityEntry::ToXapiStatement()
       case kTeacher:
         role = "Teacher";
       case kNonEditingTeacher:
-        role = "Non-Editing Teacher"
+        role = "Non-Editing Teacher";
       case kStudent:
-        role = "Student"
+        role = "Student";
       default:
         throw xapi_parsing_error("Could not find proper role mapping");
         break;
