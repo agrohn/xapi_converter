@@ -638,21 +638,32 @@ XAPI::ActivityEntry::ToXapiStatement()
       userid=anonymizer(match[1]);
       verbname = "assigned";
       userWhoIsProcessed=anonymizer(match[5]);
+      activityType = "role";
+
       string roleStr=match[3];
       stringstream ss;
       int role_id;
       ss << roleStr;
       if ( !(ss >> role_id)) throw xapi_parsing_error("Could not convert role type to integer!");
-      
+
+      string role;
       switch( role_id )
       {
       case kTeacher:
+        role = "Teacher";
       case kNonEditingTeacher:
+        role = "Non-Editing Teacher"
       case kStudent:
+        role = "Student"
       default:
+        throw xapi_parsing_error("Could not find proper role mapping");
         break;
       }
-      // TODO
+      // We'll use activity id as role identifier
+      activity_id = role;
+      json targetUser = CreateActorJson(userWhoIsProcessed);
+      extensions["http://id.tincanapi.com/extension/target"] = targetUser;
+      
     }
     
   }
