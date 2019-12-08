@@ -362,7 +362,6 @@ XAPI::Application::ParseJSONEventLog()
     try
     {
       // use overwritten version of Parse
-			
       string tmp = XAPI::StatementFactory::CreateActivity(lineasvec);
       #pragma omp critical
       statements.push_back(tmp);
@@ -384,11 +383,12 @@ XAPI::Application::ParseJSONEventLog()
     }
     catch ( xapi_verb_not_supported_error & ex )
     {
-			#pragma omp critical
+      #pragma omp critical
       errorMessages[ex.what()]++;
     }
     catch ( xapi_activity_ignored_error & ex )
     {
+      #pragma omp critical
       errorMessages[ex.what()]++;
     }
     catch ( xapi_activity_type_not_supported_error & ex )
@@ -401,6 +401,12 @@ XAPI::Application::ParseJSONEventLog()
       #pragma omp critical
       errorMessages[ex.what()]++;
     }
+    /*catch ( std::exception & ex )
+    {
+      #pragma omp critical
+      errorMessages[ex.what()]++;
+    }*/
+
 #pragma omp critical
     progress++;
     

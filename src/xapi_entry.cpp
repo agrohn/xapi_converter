@@ -54,15 +54,22 @@ XAPI::Entry::CreateActorJson( const std::string & userid )
   json user;
   string email;
   string username;
-  
-  // in case some thread is modifying a map
+  // okay, since exceptions thrown within openmp constructs should be caught
+  // within that same section, we need workaround for this situation.
+  // https://stackoverflow.com/questions/13663231/throwing-a-c-exception-inside-an-omp-critical-section
+  bool errorState = false;
+  // in case some thread is modifying a map - it should not happen anymore, but still.
   #pragma omp critical
   {
-    if ( UserIDToEmail.find(userid) == UserIDToEmail.end()) throw xapi_cached_user_not_found_error(userid);
-    if ( UserIDToUserName.find(userid) == UserIDToUserName.end()) throw xapi_cached_user_not_found_error(userid);
-    email = string("mailto:")+UserIDToEmail[userid];
-    username = UserIDToUserName[userid];
+    if ( UserIDToEmail.find(userid) == UserIDToEmail.end()) errorState = true;
+    if ( UserIDToUserName.find(userid) == UserIDToUserName.end()) errorState = true;
+    if ( errorState == false )
+    {
+	email = string("mailto:")+UserIDToEmail[userid];
+	username = UserIDToUserName[userid];
+    }
   }
+  if ( errorState ) throw xapi_cached_user_not_found_error(userid);
   // build json 
   user = {
             { "objectType", "Agent"},
