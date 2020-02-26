@@ -38,36 +38,17 @@ std::string base64_encode(const unsigned char *src, size_t len);
 
 namespace XAPI
 {
-  struct Context
-  {
-    std::string courseurl;
-    std::string coursename;
-    std::string courseStartDate;
-    std::string courseEndDate;
-  }; 
-  class MoodleParser : public Application
+
+  class Vipuvarsi : public XAPI::Application
   {
 
   public:
-    std::string data;
-    std::string gradeData;
-    std::string userData;
-    Context context;
-    bool makeAssignments{false}; ///< should assignment authorized events be created.
-    MoodleParser();
-    virtual ~MoodleParser();
-  protected:
+
+    std::string creditsData;
+    Vipuvarsi();
+    virtual ~Vipuvarsi();
     bool ParseCustomArguments() override;
-  public:
-    void ParseJSONEventLog();
-    void ParseGradeLog();
-    void ParseUsers();
-
-    void CreateAssignments();
-    bool HasGradeData() const;
-    bool HasLogData() const;
-    bool HasUserData() const;
-    bool ShouldMakeAssignments() const;
-
+    void ParseCredits();
+    bool HasCreditsData() const;
   };
 }

@@ -1,6 +1,6 @@
 /*
   This file is part of xapi_converter.  
-  Copyright (C) 2018-2019 Anssi Gröhn
+  Copyright (C) 2018-2020 Anssi Gröhn
   
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -79,14 +79,6 @@ namespace XAPI
       
   };
   
-  struct Context
-  {
-    std::string courseurl;
-    std::string coursename;
-    std::string courseStartDate;
-    std::string courseEndDate;
-  };
-  
   struct Statistics
   {
     size_t statementsInTotal{0};
@@ -139,22 +131,24 @@ namespace XAPI
   const size_t CLIENT_BODY_MAX_SIZE_BYTES = 20000000;
   const size_t DEFAULT_BATCH_STATEMENT_COUNT_CAP = 10000;
   const size_t DEFAULT_BATCH_SEND_DELAY_SECONDS = 10;
+  
   class Application
   {
   private:
     std::vector<Batch> batches;
     Statistics stats;
+  protected:
+    void SetCommonOptions();
+    virtual bool ParseCustomArguments( ) = 0;
   public:
     int throbberState;
-    std::string data;
-    std::string gradeData;
-    std::string userData;
     std::string learningLockerURL;
     std::string errorFile;
     std::string outputDir;
     // base url for all activity ids URIs
     std::string lmsBaseURL;
     std::string configFile;
+
     struct Login { 
       std::string key;
       std::string secret;
@@ -163,7 +157,7 @@ namespace XAPI
     
     size_t  clientBodyMaxSize{CLIENT_BODY_MAX_SIZE_BYTES};
     size_t  sendDelayBetweenBatches{DEFAULT_BATCH_SEND_DELAY_SECONDS};
-    Context context;
+
     boost::program_options::variables_map vm;
     boost::program_options::options_description desc;
     std::vector<std::string> statements;
@@ -171,21 +165,14 @@ namespace XAPI
     bool write{false};
     bool load{false};
     bool anonymize{false};
-    bool makeAssignments{false}; ///< should assignment authorized events be created.
-
     size_t maxStatementsInBatch{DEFAULT_BATCH_STATEMENT_COUNT_CAP};
     std::string batchFilenamePrefix;
-    Application();
+    Application( const std::string & description);
     virtual ~Application();
+    
     bool ParseArguments( int argc, char **argv );
-    void PrintUsage();
-    
 
-    void ParseJSONEventLog();
-    void ParseGradeLog();
-    void ParseUsers();
-    
-    void CreateAssignments();
+    void PrintUsage();
     
     void ComputeBatchSizes();
     void LoadBatches();
@@ -193,19 +180,17 @@ namespace XAPI
     void SendBatches();
     void WriteBatchFiles();
     void PrintBatches() const;
-    bool HasGradeData() const;
-    bool HasLogData() const;
-    bool HasUserData() const;
+
     
     bool IsDryRun() const;
     bool ShouldPrint() const;
     bool ShouldWrite() const;
     bool ShouldLoad() const;
-    bool ShouldMakeAssignments() const;
+
     void UpdateThrobber(const std::string & msg = "");
     void DisplayBatchStates();
     void LogErrors();
     void LogStats();
-    
+
   };
 }

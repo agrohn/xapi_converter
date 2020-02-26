@@ -34,7 +34,7 @@ std::string XAPI::StatementFactory::course_name = std::string();
 std::string XAPI::StatementFactory::course_start_date = std::string();
 std::string XAPI::StatementFactory::course_end_date = std::string();
 ////////////////////////////////////////////////////////////////////////////////
-XAPI::Anonymizer  anonymizer; 
+extern XAPI::Anonymizer  anonymizer; 
 ////////////////////////////////////////////////////////////////////////////////
 const std::map<std::string, std::string> supportedVerbs = {
   /*{ "added", ""},*/
