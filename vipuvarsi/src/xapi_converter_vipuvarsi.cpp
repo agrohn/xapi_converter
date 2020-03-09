@@ -72,14 +72,19 @@ static inline std::string & trim(std::string & s)
 bool
 XAPI::Vipuvarsi::ParseCustomArguments()
 {
-  if ( vm.count("credits") )
+  if ( vm.count("credits") > 0 && vm.count("load") > 0)
   {
-    creditsData = vm["credits"].as<string>();
+    cerr << "Error: cannot use --credits and --load at the same time!\n";
+    return false;
   }
-  else
+  else if ( vm.count("load") == 0 && vm.count("credits") == 0)
   {
     cerr << "Error: credits data is required!\n";
     return false;
+  }
+  else if ( vm.count("credits") > 0 )
+  {
+    creditsData = vm["credits"].as<string>();
   }
   return true;
 }
@@ -150,11 +155,17 @@ XAPI::Vipuvarsi::ParseCredits()
     {
       cerr << t << "\n";
       }*/
-    XAPI::CreditsEntry entry;
-    entry.Parse(fields);
-    statements.push_back(entry.ToXapiStatement());
-    
-    //break;
+
+    try
+    {
+      XAPI::CreditsEntry entry;
+      entry.Parse(fields);
+      statements.push_back(entry.ToXapiStatement());
+    }
+    catch ( std::runtime_error & ex )
+    {
+      errorMessages[ex.what()]++;
+    }
   }
   
 
@@ -189,7 +200,7 @@ int main( int argc, char **argv)
       configDetails >> config;
       app.login.key = config["login"]["key"];
       app.login.secret = config["login"]["secret"];
-      cout << "done.";
+      cout << "done.\n";
     }
     catch (std::exception & ex )
     {
