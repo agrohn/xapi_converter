@@ -65,11 +65,22 @@ XAPI::Entry::CreateActorJson( const std::string & userid )
     if ( UserIDToUserName.find(userid) == UserIDToUserName.end()) errorState = true;
     if ( errorState == false )
     {
-	email = string("mailto:")+UserIDToEmail[userid];
+        email = string("mailto:")+UserIDToEmail[userid];
 	username = UserIDToUserName[userid];
     }
   }
+
+  
+  smatch match;
+  // sanity check for email (learning locker needs this)
+  if ( regex_match(email, match, regex("mailto:([[:alnum:]]|\\.|_|-)+@([[:alnum:]]|\\.)+\\.[[:alnum:]]+")) == false)
+  {
+    throw xapi_invalid_email_error(email);
+  }
+
+  // sanity check for user info
   if ( errorState ) throw xapi_cached_user_not_found_error(userid);
+  
   // build json 
   user = {
             { "objectType", "Agent"},
