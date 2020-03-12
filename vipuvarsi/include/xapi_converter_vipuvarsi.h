@@ -49,6 +49,8 @@ namespace XAPI
     virtual ~Vipuvarsi();
     bool ParseCustomArguments() override;
     void ParseCredits();
+    void ParseUsers();
     bool HasCreditsData() const;
+    bool HasUserData() const;
   };
 }
