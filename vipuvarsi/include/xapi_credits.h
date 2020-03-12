@@ -22,15 +22,13 @@
 namespace XAPI
 {
   class CreditsEntry : public XAPI::Entry
-  {
-    
+  {    
   public:
     CreditsEntry();
     virtual ~CreditsEntry();
     void ParseTimestamp(const std::string & strtime) override;
     void Parse( const std::vector<std::string> & vec);
     std::string ToXapiStatement() override;
-    nlohmann::json CreateActorJson( const std::string & userid ) override;
   };
 }
 ////////////////////////////////////////////////////////////////////////////////

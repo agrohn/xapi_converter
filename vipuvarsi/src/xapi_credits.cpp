@@ -21,12 +21,16 @@
 #include <xapi_anonymizer.h>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
+#include <iostream>
 #include <locale>
 ////////////////////////////////////////////////////////////////////////////////
 using namespace boost;
 using namespace std;
 using json = nlohmann::json;
 extern XAPI::Anonymizer anonymizer;
+extern std::map<std::string, std::string> UserNameToUserID;
+extern std::map<std::string, std::string> UserIDToUserName;
+extern std::map<std::string, std::string> UserIDToEmail;
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::CreditsEntry::CreditsEntry()
 {
@@ -75,17 +79,30 @@ XAPI::CreditsEntry::ParseTimestamp(const string & strtime)
 void
 XAPI::CreditsEntry::Parse( const std::vector<std::string> & vec ) 
 {
+  
   // break line into comma-separated parts.
-  if ( vec.at(7) != "NULL" && !vec.at(7).empty() )
-    ParseTimestamp(vec.at(7));
-  else if ( vec.at(8) != "NULL" && !vec.at(8).empty() )
-    ParseTimestamp(vec.at(8));
+  if ( vec.at(9) != "NULL" && !vec.at(9).empty() )
+    ParseTimestamp(vec.at(9));
+  else if ( vec.at(10) != "NULL" && !vec.at(10).empty() )
+    ParseTimestamp(vec.at(10));
   else
-    throw runtime_error("Invalid timestamp");
-  userid = anonymizer(vec.at(0)); // gradee student id
-  event = vec.at(5); // grade
-  course_name = vec.at(3);
-  course_id = vec.at(1);
+    throw runtime_error(string("Invalid timestamps ")+vec.at(9)+" "+vec.at(10));
+
+  userid = vec.at(0); // gradee student number
+  #pragma omp critical
+  {
+    UserIDToEmail[userid] = anonymizer(vec.at(2));
+  }
+  #pragma omp critical
+  {
+    UserIDToUserName[userid] = anonymizer(vec.at(1)); 
+  }
+  // convert to lower-case 
+  for ( auto & c : userid ) c = tolower(c);
+  
+  event = vec.at(7); // grade
+  course_name = vec.at(5);
+  course_id = vec.at(3);
 }
 ////////////////////////////////////////////////////////////////////////////////
 std::string
@@ -105,11 +122,10 @@ XAPI::CreditsEntry::ToXapiStatement()
   //string userid = UserNameToUserID[username];
   // define user receiving a score
   actor = CreateActorJson(userid);
+
   // construct scoring verb
   string verbname;
   string verb_xapi_id;
-
-
 
   // construct result 
   //result["score"] = {
@@ -164,7 +180,7 @@ XAPI::CreditsEntry::ToXapiStatement()
   result["extensions"] = {
    { "http://www.tincanapi.co.uk/extensions/result/classification", event}
   };
-  json activityContext;
+   json activityContext;
   json grouping = {
     { "grouping", {
 	{
@@ -184,34 +200,16 @@ XAPI::CreditsEntry::ToXapiStatement()
       }
     }
   };
+  activityContext =  {
+    { "contextActivities", grouping }
+  };
   statement["actor"] = actor;
   statement["verb"] = verb;
   statement["timestamp"] = GetTimestamp();
   statement["object"] = object;
   statement["result"] = result;
+  statement["context"] = activityContext;
 
   return statement.dump();
 }
 ////////////////////////////////////////////////////////////////////////////////
-nlohmann::json
-XAPI::CreditsEntry::CreateActorJson( const std::string & userid )
-{
-
-  json user;
-  string email;
-  string username;
-
-  email = std::string("mailto:")+userid + std::string("@karelia.fi");
-  username = userid;
-  // in case some thread is modifying a map - it should not happen anymore, but still.
-  if ( userid.empty()) throw runtime_error("User id not set!");
-
-  // build json 
-  user = {
-            { "objectType", "Agent"},
-            { "name", username },
-            { "mbox", email }
-  };
-  
-  return user;
-}
