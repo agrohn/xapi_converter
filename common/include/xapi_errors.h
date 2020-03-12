@@ -60,3 +60,7 @@ class xapi_activity_ignored_error : public xapi_parsing_error {
 public:
   xapi_activity_ignored_error(const std::string & tmp ) : xapi_parsing_error( "Activity '" + tmp + "' ignored."){}
 };
+class xapi_invalid_email_error : public xapi_parsing_error {
+public:
+  xapi_invalid_email_error(const std::string & tmp ) : xapi_parsing_error( "Invalid email '" + tmp + "'"){}
+};
