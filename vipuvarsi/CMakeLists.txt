@@ -12,4 +12,4 @@ set(HEADERS
 
 
 add_executable(xapi_vipuvarsi ${SOURCES})
-target_link_libraries(xapi_vipuvarsi ${LIBS} xapi_common)
+target_link_libraries(xapi_vipuvarsi xapi_common ${LIBS} )
