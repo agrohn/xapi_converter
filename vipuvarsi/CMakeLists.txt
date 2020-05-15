@@ -10,6 +10,9 @@ set(HEADERS
   include/xapi_credits.h
   )
 
-
+set(CREDITCOMBINER_SOURCES
+  src/xapi_creditcombiner.cpp
+  )
 add_executable(xapi_vipuvarsi ${SOURCES})
 target_link_libraries(xapi_vipuvarsi xapi_common ${LIBS} )
+add_executable(xapi_creditcombiner ${CREDITCOMBINER_SOURCES})
