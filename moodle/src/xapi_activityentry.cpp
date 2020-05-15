@@ -525,8 +525,7 @@ XAPI::ActivityEntry::ToXapiStatement()
     activityType = "course";
     string method = match[4]; // self|manual
     activity_id = match[6]; 
-
-
+    
     if ( method != "self" ) // in case user was unenrolled by some other user
     {
       // actor was the (un)enroller, actual user that was (un)enrolled needs to be set as actor.
@@ -534,6 +533,11 @@ XAPI::ActivityEntry::ToXapiStatement()
       // add (un)enroller to related context
       extensions["http://id.tincanapi.com/extension/target"] = target_user;
     }
+    // this is used to mark moodle user id into (un)enrolling event, which in turn allows us to
+    // get proper moodle id for users later, if user decides to leave moodle workspace.
+    auto activityIt = activityTypes.find("user");
+    if ( activityIt == activityTypes.end()) throw xapi_activity_type_not_supported_error("user");
+    extensions[activityIt->second] = userWhoIsProcessed;
        
   }
   /*
