@@ -15,8 +15,9 @@ set(HEADERS
   include/xapi_converter_moodle.h
   )
 
-
 add_executable(xapi_moodler ${SOURCES})
-add_executable(xapi_usercache_combiner src/xapi_usercachecombiner.cpp)
+add_executable(xapi_usercache_combiner src/xapi_usercachecombiner.cpp src/xapi_usercacheapp.cpp)
+add_executable(xapi_usercache_diff src/xapi_usercache_diff.cpp src/xapi_usercacheapp.cpp)
 target_link_libraries(xapi_moodler xapi_common ${LIBS} )
 target_link_libraries(xapi_usercache_combiner ${Boost_LIBRARIES} )
+target_link_libraries(xapi_usercache_diff ${Boost_LIBRARIES} )
