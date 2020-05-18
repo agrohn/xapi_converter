@@ -19,3 +19,4 @@ set(HEADERS
 add_executable(xapi_moodler ${SOURCES})
 add_executable(xapi_usercache_combiner src/xapi_usercachecombiner.cpp)
 target_link_libraries(xapi_moodler xapi_common ${LIBS} )
+target_link_libraries(xapi_usercache_combiner ${Boost_LIBRARIES} )

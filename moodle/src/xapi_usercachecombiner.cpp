@@ -6,9 +6,11 @@
 #include <set>
 #include <iostream>
 #include <sstream>
+#include <boost/program_options.hpp>
 ////////////////////////////////////////////////////////////////////////////////
 using namespace std;
 using json = nlohmann::json;
+namespace po = boost::program_options;
 ////////////////////////////////////////////////////////////////////////////////
 struct User
 {
@@ -20,26 +22,45 @@ struct User
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv)
 {
+  boost::program_options::variables_map vm;
+  boost::program_options::options_description desc;
   
-  if ( argc < 3 )
-  {
-    cout << "Usage:\n"
-         << argv[0] << " <merged-output-file>.json <usercache-file1>.json [<usercache-file2>.json  ... ] \n";
-    return 0; 
-  }
-  string outfile = argv[1];
+  desc.add_options()
+  ("out", po::value<string>(), "<file>.json Merged user JSON file")
+  ("sources", po::value< vector<string> >()->multitoken(), "<file1.json> [<file2.json> ...] Array of user cache json files to be merged");
+  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::notify(vm);
+  // need option to merge file
+  // need option to diff files (new, deleted)
+  // need option to define "new" and "old" files for comparison. -> boost program_options, here we come.
+  vector<string> userCacheFiles;
   
-  list<string> userCacheFiles;
-  std::map<string,User> users;
-  // get all files into list
-  for( int i=2;i<argc;i++)
+  if ( vm.count("sources") > 0 )
   {
-    userCacheFiles.push_back(argv[i]);
+    userCacheFiles = vm["sources"].as<vector<string>>();
   }
+  else
+  {
+    cerr << "You need at least one input file with --sources option.\n";
+    return -1;
+  }
+  string outfile;
+  
+  if ( vm.count("out") == 1 )
+  {
+    outfile = vm["out"].as<string>();
+  }
+  else
+  {
+    cerr << "You need to have only a single output file via --out option!\n";
+    return -1;
+  }
+  
 
+  std::map<string,User> users;
+  
   for( auto & userFile : userCacheFiles )
   {
-    cerr << "opening file " << userFile << "\n";
     json content;
     ifstream f(userFile);
     // skip invalid streams
