@@ -136,13 +136,17 @@ XAPI::ActivityEntry::UpdateUserData()
 #pragma omp critical
     {
       string userid = match[1];
+      // update only if there is no match, since user cache is processed beforehand.
+      if ( UserNameToUserID.find(username) == UserNameToUserID.end() &&
+           UserIDToUserName.find(userid) == UserIDToUserName.end() )
+      {
+        UserNameToUserID[username] = anonymizer(userid);
+        UserIDToUserName[userid] = anonymizer(username);
+      }
       
-      UserNameToUserID[username] = anonymizer(userid);
-      UserIDToUserName[userid] = anonymizer(username);
       // What about email!? Cannot work like this 
       if ( UserIDToEmail.find(userid) == UserIDToEmail.end())
       {
-
         UserIDToEmail[userid] = "user.unknown@unknownaddress.net";
         //throw xapi_cached_user_not_found_error( userid + std::string(" ") + username );
       }
