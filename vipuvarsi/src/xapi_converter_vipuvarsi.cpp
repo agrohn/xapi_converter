@@ -257,15 +257,23 @@ int main( int argc, char **argv)
     }
     
     if ( app.ShouldPrint()) app.PrintBatches();
-    
+    int retval = 0;
     if ( app.IsDryRun())
       cout << "alright, dry run - not sending statements.\n";
     else
-      app.SendBatches();
-
+    {
+      try
+      {
+	app.SendBatches();
+      }
+      catch ( xapi_max_send_attempts_reached_error & ex )
+      {
+	retval = 1;
+      }
+    }
     app.LogErrors();
     app.LogStats();
 
-    return 0;
+    return retval;
 }
 ////////////////////////////////////////////////////////////////////////////////

@@ -2,7 +2,7 @@
   This file is part of xapi_converter.  Parses moodle logs and constructs 
   xAPI statements out of them, sending them to LRS.
 
-  Copyright (C) 2018-2019 Anssi Gröhn
+  Copyright (C) 2018-2020 Anssi Gröhn
   
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -493,15 +493,24 @@ int main( int argc, char **argv)
     }
     
     if ( app.ShouldPrint()) app.PrintBatches();
-    
+    int retval = 0;
     if ( app.IsDryRun())
       cout << "alright, dry run - not sending statements.\n";
     else
-      app.SendBatches();
+    {
+      try
+      {
+	app.SendBatches();
+      }
+      catch ( xapi_max_send_attempts_reached_error & ex )
+      {
+	retval = 1;
+      }
+    }
 
     app.LogErrors();
     app.LogStats();
 
-    return 0;
+    return retval;
 }
 ////////////////////////////////////////////////////////////////////////////////
