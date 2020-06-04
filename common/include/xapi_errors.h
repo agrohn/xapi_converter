@@ -64,3 +64,8 @@ class xapi_invalid_email_error : public xapi_parsing_error {
 public:
   xapi_invalid_email_error(const std::string & tmp ) : xapi_parsing_error( "Invalid email '" + tmp + "'"){}
 };
+class xapi_max_send_attempts_reached_error : public std::runtime_error
+{
+public:
+  using std::runtime_error::runtime_error;
+};
