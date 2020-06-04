@@ -68,6 +68,10 @@ XAPI::Application::SetCommonOptions()
   tmp.str("");
   tmp << "<value> Seconds to wait before sending next batch to server. By default, " << DEFAULT_BATCH_SEND_DELAY_SECONDS << ".";
   string batchSendDelay = tmp.str();
+
+  tmp.str("");
+  tmp << "<count> maximum number of attempts per batch before considered a failure. By default, " << DEFAULT_MAX_BATCH_SEND_ATTEMPTS << ".";
+  string batchMaxSendAttemptsDesc = tmp.str();
   // options 
   desc.add_options()
   ("send", po::value<string>(), "<addr> learning locker server hostname or ip. If not defined, performs dry run.")
@@ -79,6 +83,7 @@ XAPI::Application::SetCommonOptions()
   ("batch-prefix", po::value<string>(), "<string> file name prefix to be used while writing statement json files to disk.")
   ("batch-max-bytes", po::value<size_t>(), batchMaxBytesDescription.c_str())
   ("batch-max-statements", po::value<size_t>(),batchMaxStatementsDescription.c_str())
+  ("batch-max-send-attempts", po::value<size_t>(),batchMaxSendAttemptsDesc.c_str())
   ("batch-send-delay", po::value<size_t>(), batchSendDelay.c_str() )
   ("help", "print this help message.")
   ("generate-config", "Generates configuration file template config.json.template to into current directory.")
@@ -178,6 +183,11 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   if ( vm.count("batch-max-statements")> 0)
   {
     maxStatementsInBatch = vm["batch-max-statements"].as<size_t>();
+  }
+
+  if ( vm.count("batch-max-send-attempts") > 0 )
+  {
+    maxBatchSendAttempts = vm["batch-max-send-attempts"].as<size_t>();
   }
   
   if ( vm.count("batch-send-delay")> 0)
@@ -378,12 +388,17 @@ XAPI::Application::SendBatches()
 
 
     bool lastBatchFailed = false;
-    
+    // Clear log from previous run, if it exists.
+    {
+      ofstream file(outputDir+"/"+std::string("curl.log"), std::fstream::trunc);
+      file.close();
+    }
     for( auto & batch : batches )
     {
       // submission might fail, keep trying until you get it done.
       int responseCode = 0;
-      int attemptNumber = 1;
+      size_t attemptNumber = 1;
+
       do
       {
         if ( sendDelaySecondsRemaining > 0  )
@@ -450,6 +465,7 @@ XAPI::Application::SendBatches()
             if ( responseCode != 200)
             {
               lastBatchFailed = true;
+
               sendDelaySecondsRemaining = sendDelayBetweenBatches;
               ss.str("");
               ss << "Sending batch " << count << " failed! Retrying in " << sendDelaySecondsRemaining << "...";
@@ -476,14 +492,35 @@ XAPI::Application::SendBatches()
 
           }
           catch ( curlpp::LogicError & e ) {
-	  
-            std::cout << "Logic error " << e.what() << std::endl;
+	    lastBatchFailed = true;
+	    attemptNumber++;
+	    errorMessages[e.what()]++;
+	    sendDelaySecondsRemaining = sendDelayBetweenBatches;
+	    stringstream ss;
+	    ss << "Sending batch " << count << " failed! Retrying in " << sendDelaySecondsRemaining << "...";
+	    UpdateThrobber(ss.str());
+	    attemptNumber++;
           }
           catch ( curlpp::RuntimeError & e ) {
-            std::cout << "Runtime error " << e.what() << std::endl;
+	    lastBatchFailed = true;
+	    errorMessages[e.what()]++;
+
+	    sendDelaySecondsRemaining = sendDelayBetweenBatches;
+	    stringstream ss;
+	    ss << "Sending batch " << count << " failed! Retrying in " << sendDelaySecondsRemaining << "...";
+	    UpdateThrobber(ss.str());
+	    attemptNumber++;
           }
         }
-      } while ( (sendDelaySecondsRemaining > 0) || (responseCode != 200) );
+      } while ( ((sendDelaySecondsRemaining > 0) || (responseCode != 200)) && attemptNumber <= maxBatchSendAttempts );
+      // report error if max number of attempts is reached.
+      if ( attemptNumber >= maxBatchSendAttempts )
+      {
+	stringstream ss("Sending batch ");
+	ss << count << " failed, reached " << maxBatchSendAttempts << " send attempts.";
+	errorMessages[ss.str()]++;
+	throw xapi_max_send_attempts_reached_error(ss.str());
+      }
       count++;
     }
   }

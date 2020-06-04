@@ -131,6 +131,7 @@ namespace XAPI
   const size_t CLIENT_BODY_MAX_SIZE_BYTES = 20000000;
   const size_t DEFAULT_BATCH_STATEMENT_COUNT_CAP = 10000;
   const size_t DEFAULT_BATCH_SEND_DELAY_SECONDS = 10;
+  const size_t DEFAULT_MAX_BATCH_SEND_ATTEMPTS = 10;
   
   class Application
   {
@@ -157,7 +158,7 @@ namespace XAPI
     
     size_t  clientBodyMaxSize{CLIENT_BODY_MAX_SIZE_BYTES};
     size_t  sendDelayBetweenBatches{DEFAULT_BATCH_SEND_DELAY_SECONDS};
-
+    size_t  maxBatchSendAttempts{DEFAULT_MAX_BATCH_SEND_ATTEMPTS};
     boost::program_options::variables_map vm;
     boost::program_options::options_description desc;
     std::vector<std::string> statements;
