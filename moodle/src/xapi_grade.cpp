@@ -146,7 +146,7 @@ XAPI::GradeEntry::GetGradeScore()
 {
   stringstream ss;
   ss << component;
-  int value;
+  float value;
   ss >> value;
   return value;
 }
