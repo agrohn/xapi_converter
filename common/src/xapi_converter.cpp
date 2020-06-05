@@ -613,7 +613,7 @@ XAPI::Application::LogErrors()
   {
     ofstream err(outputDir+"/"+errorFile);
     err << "Run yielded " << errorMessages.size() << " different errors.\n";
-    if ( err.is_open() == false) throw new std::runtime_error("Cannot open error log file: "+ errorFile );
+    if ( err.is_open() == false) throw std::runtime_error("Cannot open error log file: "+ errorFile );
     
     for(auto & s:errorMessages)
     {
