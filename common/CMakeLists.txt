@@ -3,7 +3,6 @@ include_directories(xapi_common PUBLIC include ${CURLPP_INCLUDE_DIRS} ${CURL_INC
 set(SOURCES
   src/xapi_converter.cpp
   src/xapi_entry.cpp
-  src/base64_encode.cpp
   )
 set(HEADERS
   include/json.hpp
@@ -16,4 +15,4 @@ set(HEADERS
 
 add_library(xapi_common ${SOURCES})
 add_executable( json_prettifier src/json_prettifier.cpp)
-#target_link_libraries(xapi_converter ${LIBS})
+target_link_libraries(xapi_common ${B64_LIBRARY})

@@ -30,6 +30,8 @@
 #include <curlpp/Infos.hpp>
 #include <fstream>
 #include <sys/stat.h>
+#define BUFFERSIZE 1024
+#include <b64/encode.h>
 using json = nlohmann::json;
 using namespace std;
 //https://nithinkk.wordpress.com/2017/03/16/learning-locker/
@@ -376,13 +378,18 @@ XAPI::Application::SendBatches()
   if ( learningLockerURL.size() > 0 )
   {
     //https://stackoverflow.com/questions/25852551/how-to-add-basic-authentication-header-to-webrequest#25852562
-    string tmp;
+    string auth;
     {
       stringstream ss;
       ss << login.key << ":" << login.secret;
-      tmp = ss.str();
+      base64::encoder E;
+      // encode using libb64
+      stringstream out;
+      E.encode(ss,out);
+      auth = "Basic " + out.str();
     }
-    string auth = "Basic " + base64_encode(reinterpret_cast<const unsigned char *>(tmp.c_str()), tmp.size());
+
+
     size_t count = 0;
     int sendDelaySecondsRemaining = 0;
 

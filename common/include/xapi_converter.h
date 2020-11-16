@@ -25,7 +25,6 @@
 #include <iomanip>
 #include <chrono>
 
-
 #include <cstdlib>
 #include <cerrno>
 #include <curlpp/cURLpp.hpp>
@@ -33,8 +32,6 @@
 #include <curlpp/Options.hpp>
 #include <curlpp/Exception.hpp>
 #include <boost/program_options.hpp>
-
-std::string base64_encode(const unsigned char *src, size_t len);
 
 namespace XAPI
 {
