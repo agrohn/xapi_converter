@@ -21,7 +21,7 @@
 #include <iomanip>
 #include <ctime>
 #include <regex>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 ////////////////////////////////////////////////////////////////////////////////
 extern const std::map<std::string, std::string> supportedVerbs;
 extern std::map<std::string, std::string> activityTypes;

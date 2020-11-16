@@ -5,7 +5,6 @@ set(SOURCES
   src/xapi_entry.cpp
   )
 set(HEADERS
-  include/json.hpp
   include/xapi_entry.h
   include/xapi_errors.h
   include/xapi_statementfactory.h
@@ -15,4 +14,4 @@ set(HEADERS
 
 add_library(xapi_common ${SOURCES})
 add_executable( json_prettifier src/json_prettifier.cpp)
-target_link_libraries(xapi_common ${B64_LIBRARY})
+target_link_libraries(xapi_common ${B64_LIBRARY} nlohmann_json::nlohmann_json)

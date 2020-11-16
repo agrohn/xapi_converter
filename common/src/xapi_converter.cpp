@@ -24,7 +24,7 @@
 #include <omp.h>
 #include <string>
 #include <cctype>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include <chrono>
 #include <thread>
 #include <curlpp/Infos.hpp>
