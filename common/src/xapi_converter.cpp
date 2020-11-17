@@ -386,7 +386,12 @@ XAPI::Application::SendBatches()
       // encode using libb64
       stringstream out;
       E.encode(ss,out);
-      auth = "Basic " + out.str();
+      stringstream authss;
+      // E.encode inserts newlines every 72 chars, so let's get rid of them.
+      string tmp;
+      while( (out >>  tmp) ) authss << tmp;
+      auth = "Basic " + authss.str();
+      
     }
 
 
@@ -438,11 +443,11 @@ XAPI::Application::SendBatches()
             request.setOpt(new curlpp::options::Verbose(false)); 
             std::list<std::string> header;
             header.push_back("Authorization: " + auth);
-	
+
             header.push_back("X-Experience-API-Version: 1.0.3");
             header.push_back("Content-Type: application/json; charset=utf-8");
             request.setOpt(new curlpp::options::HttpHeader(header)); 
-	
+
 
             stringstream ss;
             ss << "Sending batch " << count << " ";
