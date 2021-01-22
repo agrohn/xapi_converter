@@ -74,6 +74,11 @@ XAPI::Application::SetCommonOptions()
   tmp.str("");
   tmp << "<count> maximum number of attempts per batch before considered a failure. By default, " << DEFAULT_MAX_BATCH_SEND_ATTEMPTS << ".";
   string batchMaxSendAttemptsDesc = tmp.str();
+
+  tmp.str("");
+  tmp << "<value> Seconds to wait before sending next batch to server when previous failed. By default, " << DEFAULT_BATCH_SEND_FAILURE_DELAY_SECONDS << ".";
+  string batchSendFailureDelay = tmp.str();
+
   // options 
   desc.add_options()
   ("send", po::value<string>(), "<addr> learning locker server hostname or ip. If not defined, performs dry run.")
@@ -87,6 +92,7 @@ XAPI::Application::SetCommonOptions()
   ("batch-max-statements", po::value<size_t>(),batchMaxStatementsDescription.c_str())
   ("batch-max-send-attempts", po::value<size_t>(),batchMaxSendAttemptsDesc.c_str())
   ("batch-send-delay", po::value<size_t>(), batchSendDelay.c_str() )
+  ("batch-send-failure-delay", po::value<size_t>(), batchSendFailureDelay.c_str() )
   ("help", "print this help message.")
   ("generate-config", "Generates configuration file template config.json.template to into current directory.")
   ("config", po::value<string>(), "<filename> Loads configuration from given file instead of data/config.json" )
@@ -195,6 +201,11 @@ XAPI::Application::ParseArguments( int argc, char **argv )
   if ( vm.count("batch-send-delay")> 0)
   {
     sendDelayBetweenBatches = vm["batch-send-delay"].as<size_t>();
+  }
+
+  if ( vm.count("batch-send-failure-delay")> 0)
+  {
+    sendFailureDelayBetweenBatches = vm["batch-send-failure-delay"].as<size_t>();
   }
 
   print = vm.count("print") > 0;
@@ -477,8 +488,8 @@ XAPI::Application::SendBatches()
             if ( responseCode != 200)
             {
               lastBatchFailed = true;
-
-              sendDelaySecondsRemaining = sendDelayBetweenBatches;
+	      // Since we failed, we set also different wait time for next batch
+              sendDelaySecondsRemaining = sendFailureDelayBetweenBatches;
               ss.str("");
               ss << "Sending batch " << count << " failed! Retrying in " << sendDelaySecondsRemaining << "...";
               UpdateThrobber(ss.str());
