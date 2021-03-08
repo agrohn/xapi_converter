@@ -29,6 +29,7 @@
 #include <thread>
 #include <curlpp/Infos.hpp>
 #include <fstream>
+#include <cstdio>
 #include <sys/stat.h>
 #define BUFFERSIZE 1024
 #include <b64/encode.h>
@@ -93,6 +94,7 @@ XAPI::Application::SetCommonOptions()
   ("batch-max-send-attempts", po::value<size_t>(),batchMaxSendAttemptsDesc.c_str())
   ("batch-send-delay", po::value<size_t>(), batchSendDelay.c_str() )
   ("batch-send-failure-delay", po::value<size_t>(), batchSendFailureDelay.c_str() )
+  ("delete-batch-after-send", "Delete processed batch files after successful send. Use with care.")
   ("help", "print this help message.")
   ("generate-config", "Generates configuration file template config.json.template to into current directory.")
   ("config", po::value<string>(), "<filename> Loads configuration from given file instead of data/config.json" )
@@ -210,7 +212,8 @@ XAPI::Application::ParseArguments( int argc, char **argv )
 
   print = vm.count("print") > 0;
   write = vm.count("write") > 0;
-
+  deleteBatchAfterSend = vm.count("delete-batch-after-send") > 0;
+  
   if ( write && vm.count("output-dir") > 0 )
   {
     outputDir = vm["output-dir"].as<std::string>();
@@ -502,9 +505,23 @@ XAPI::Application::SendBatches()
 	      file << "\n--- failed batch contents END ---\n";
               file.close();
             }
-            else
+            else 
             {
+	      // send was successfull
               lastBatchFailed = false;
+	      if ( deleteBatchAfterSend && batch.filename.empty() == false )
+	      {
+		if ( remove(batch.filename.c_str()) != 0 )
+		{
+		  cerr << "\n";
+		  cerr << "Failed to delete file '" << batch.filename << "'\n";
+		}
+		else
+		{
+		  cerr << "\n";
+		  cerr << "Deleted batch file '" << batch.filename << "'\n";
+		}
+	      }
               // if batch is not the last one, add delay.
               if ( count < batches.size()-1)
               {

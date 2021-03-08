@@ -165,6 +165,8 @@ namespace XAPI
     bool write{false};
     bool load{false};
     bool anonymize{false};
+    bool deleteBatchAfterSend{false};
+    
     size_t maxStatementsInBatch{DEFAULT_BATCH_STATEMENT_COUNT_CAP};
     std::string batchFilenamePrefix;
     Application( const std::string & description);
@@ -180,7 +182,6 @@ namespace XAPI
     void SendBatches();
     void WriteBatchFiles();
     void PrintBatches() const;
-
     
     bool IsDryRun() const;
     bool ShouldPrint() const;
