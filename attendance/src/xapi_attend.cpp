@@ -145,6 +145,7 @@ XAPI::AttendanceEntry::ToXapiStatement()
 
   default:
     verbname = "skipped";
+    extensions["http://id.tincanapi.com/extension/severity"] = "skipped";
     verb_xapi_id = "http://id.tincanapi.com/verb/skipped";
     break;
   }; 
@@ -170,7 +171,8 @@ XAPI::AttendanceEntry::ToXapiStatement()
           { "en-GB", "Lecture"}
          }
        },
-       { "type" , "http://activitystrea.ms/schema/1.0/event"}
+       { "type" , "http://activitystrea.ms/schema/1.0/event"},
+       { "extensions", extensions }
       }
     }
   };
