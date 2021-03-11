@@ -166,7 +166,7 @@ XAPI::Attendance::ParseAttendance()
     if ( omp_get_thread_num() == 0 )
     {
       stringstream ss;
-      ss << "Processing credits data [" << std::string(progress) << "%]...";
+      ss << "Processing attendance data [" << std::string(progress) << "%]...";
       UpdateThrobber(ss.str()); 
     }
 
@@ -222,7 +222,7 @@ XAPI::Attendance::ParseAttendance()
     }
   }
   stringstream ss;
-  ss << "Processing credits data [" << std::string(progress) << "%]...";
+  ss << "Processing attendance data [" << std::string(progress) << "%]...";
   UpdateThrobber(ss.str()); 
 }
 ////////////////////////////////////////////////////////////////////////////////
