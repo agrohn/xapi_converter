@@ -15,4 +15,5 @@ set(HEADERS
 add_library(xapi_common ${SOURCES})
 add_executable( json_prettifier src/json_prettifier.cpp)
 add_executable( json_parser src/json_parser.cpp)
+add_executable( json_merge_arrays src/json_merge_arrays.cpp)
 target_link_libraries(xapi_common ${B64_LIBRARY} nlohmann_json::nlohmann_json)
