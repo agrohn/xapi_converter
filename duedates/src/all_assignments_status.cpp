@@ -46,9 +46,6 @@ struct AssignmentRecord
 };
 
 
-
-
-
 map<string, map<string,AssignmentRecord>> mapAssignmentStatus;
 
 int main( int argc, char **argv )
@@ -68,60 +65,121 @@ int main( int argc, char **argv )
   scoresFile >> scores;
   scoresFile.close();
 
+  ifstream studentsFile(argv[4]);
+  json students;
+  studentsFile >> students;
+  studentsFile.close();
+  
   // collect all assignments and duedates 
-  for( auto & a : assignments )
+  for( auto & c : assignments )
   {
-
     try
     {
-      string course     = a["courseName"];
-      string duedate    = a["duedate"].is_null() ? "" : a["duedate"];
-      string assignment = a["name"];
-      mapAssignmentStatus[course][assignment] = { duedate, {} } ;
+      string course     = c["courseName"];
+      string courseId     = c["courseId"];
+      for( auto & a : c["data"] )
+      {
+	string duedate    = a["duedate"].is_null() ? "" : a["duedate"];
+	string assignment = a["name"];
+	mapAssignmentStatus[course][assignment] = { duedate, {} } ;
+      }
     }
-    catch (...)
+    catch ( std::exception & ex )
     {
-      cerr << a << "\n";
+      cerr << ex.what() << "\n";
+      cerr << "Failure at assignments: " << c << "\n";
+      return 1;
     }
   }
+
   
-  // set submissions to records
-  for ( auto & e: submissions )
+  // collect all students to course assignments
+
+  for( auto & c : students )
   {
-    try {
-      if ( e["_id"]["courseName"].is_null()) continue;
-      
-      string course = e["_id"]["courseName"];
-      string student = e["_id"]["student"];
-      string email = e["_id"]["email"];
-      string assignment = e["_id"]["task"];
-      string submissionsDate = e["_id"]["date"];
-      
-      mapAssignmentStatus[course][assignment].students[email].name = student;
-      mapAssignmentStatus[course][assignment].students[email].email = email;
-      mapAssignmentStatus[course][assignment].students[email].submissions.push_back( submissionsDate);
-    }
-    catch (...)
+    try
     {
-      cerr << e << "\n";
+      if ( c["courseName"].is_null()) continue;
+      
+      string course = c["courseName" ];
+      string courseId = c["courseId"];
+      for( auto & assignmentIt : mapAssignmentStatus[course] )
+      {
+	string assignment = assignmentIt.first;	
+	for ( auto & s : c["data"] )
+	{
+	  if ( s["_id"]["Opiskelija"].is_null()) continue;
+	  string student = s["_id"]["Opiskelija"];
+	  string email = s["_id"]["Email"];
+	
+	  mapAssignmentStatus[course][assignment].students[email].name = student;
+	  mapAssignmentStatus[course][assignment].students[email].email = email;
+	}
+      }
+    }
+    catch (std::exception & ex )
+    {
+      cerr << ex.what() << "\n";
+      cerr << "Failure at students : " << c << "\n";
+      return 1;
+    }
+      
+  }
+
+  
+  // set submissions for each student
+  for ( auto & c: submissions )
+  {
+    try
+    {
+      if ( c["courseName"].is_null()) continue;
+      
+      string course = c["courseName"];
+      string courseId = c["courseId"];
+      for ( auto & s : c["data"] )
+      {
+
+	string email = s["_id"]["email"];
+	string assignment = s["_id"]["task"];
+	string submissionsDate = s["_id"]["date"];
+	mapAssignmentStatus[course][assignment].students[email].submissions.push_back( submissionsDate);
+      }
+    }
+    catch ( std::exception & ex )
+    {
+      cerr << ex.what() << "\n";
+      cerr << "Failure at students : " << c << "\n";
+      return 1;
     }
   }
-  
-  for( auto & e : scores )
+  // set all scores for each student
+  for( auto & c : scores )
   {
     try {
-      if ( e["coursename"].is_null() ) continue;
-      string course = e["coursename"];
-      string student = e["Opiskelija"];
-      string email = e["Email"];
-      string assignment = e["Tehtava"];
-      string gradeDate = e["Timestamp"];
-      float gradeScore = e["Pisteet"];
-      mapAssignmentStatus[course][assignment].students[email].grades.push_back( { gradeDate, gradeScore } );
+      
+      if ( c["courseName"].is_null() ) continue;
+      
+      string course = c["courseName"];
+      string courseId = c["courseId"];
+      
+      for ( auto & s : c["data"] )
+      {
+	if ( s["_id"]["Opiskelija"].is_null()) continue;
+	string student = s["_id"]["Opiskelija"];
+	string email = s["_id"]["Email"];
+	string assignment = s["_id"]["Tehtava"];
+	string gradeDate = s["_id"]["Timestamp"];
+	float gradeScore = s["_id"]["Pisteet"];
+	
+	mapAssignmentStatus[course][assignment].students[email].grades.push_back( { gradeDate, gradeScore } );
+      }
+      
     }
-    catch( ...)
+    catch( std::exception & ex )
     {
-      cerr << e << "\n";
+      cerr << ex.what() << "\n";
+      cerr << "Failure at students : " << c << "\n";
+      return 1;
     }
   }
 
@@ -187,7 +245,7 @@ int main( int argc, char **argv )
     result.push_back(coursePart);
   }
 
-  ofstream output(argv[4]);
+  ofstream output(argv[5]);
   output << result;
   return 0;
 }
