@@ -14,6 +14,7 @@ set(HEADERS
 
 add_library(xapi_common ${SOURCES})
 add_executable( json_prettifier src/json_prettifier.cpp)
+add_executable( json_unprettifier src/json_unprettifier.cpp)
 add_executable( json_parser src/json_parser.cpp)
 add_executable( json_merge_arrays src/json_merge_arrays.cpp)
 add_executable( json_append_info src/json_append_info.cpp)
