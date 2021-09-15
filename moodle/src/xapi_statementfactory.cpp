@@ -117,15 +117,15 @@ const std::map<std::string, std::string> contextModuleLocaleToActivityType = {
 };
 
 const std::map<std::string, std::string> moodleXapiActivity = {
-  { "collaborate", "http://adlnet.gov/expapi/activities/media"},
+  { "collaborate", "http://adlnet.gov/expapi/activities/meeting"},
   { "quiz", "http://id.tincanapi.com/activitytype/school-assignment" }, // or http://adlnet.gov/expapi/activities/assessment
   { "page", "http://adlnet.gov/expapi/activities/media" },
   { "resource", "http://adlnet.gov/expapi/activities/media"},
-  { "url", "http://adlnet.gov/expapi/activities/media" },
+  { "url", "http://adlnet.gov/expapi/activities/link" },
   { "forum", "https://w3id.org/xapi/acrossx/activities/online-discussion"},
   { "hsuforum", "https://w3id.org/xapi/acrossx/activities/online-discussion"},
   { "lti", "http://adlnet.gov/expapi/activities/media"},
-  { "course", "http://adlnet.gov/expapi/activities/media"},
+  { "course", "http://adlnet.gov/expapi/activities/course"},
   { "assignment", "http://id.tincanapi.com/activitytype/school-assignment" },
   { "lesson", "http://id.tincanapi.com/activitytype/school-assignment" },
   { "quiz", "http://id.tincanapi.com/activitytype/school-assignment" },
@@ -136,7 +136,7 @@ const std::map<std::string, std::string> moodleXapiActivity = {
   { "chapter", "http://id.tincanapi.com/activitytype/chapter" },
   { "discussion", "http://id.tincanapi.com/activitytype/discussion" },
   { "user", "http://id.tincanapi.com/activitytype/user-profile" },
-  { "post", "http://id.tincanapi.com/activitytype/forum-reply"},
+  { "post", "http://id.tincanapi.com/activitytype/forum-topic"},
   { "reply", "http://id.tincanapi.com/activitytype/forum-reply"},
   { "label", "http://activitystrea.ms/schema/1.0/note"},
   { "submission", "http://id.tincanapi.com/activitytype/school-assignment"},
