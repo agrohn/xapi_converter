@@ -132,22 +132,38 @@ XAPI::AttendanceEntry::ToXapiStatement()
 
   verbname = "attended";
   verb_xapi_id = "http://activitystrea.ms/schema/1.0/attend";
-  
-  switch( tolower(component[0]) )
+
+  // convert component string to lowercase 
+  transform(component.begin(), component.end(), component.begin(), ::tolower);
+
+  // duration needs to be encoded using ISO8601
+  // https://en.wikipedia.org/wiki/ISO_8601
+  if( component == "x" )
   {
-  case 'x':
     extensions["http://id.tincanapi.com/extension/severity"] = "live";
-    break;
-
-  case 'v':
+    extensions["http://id.tincanapi.com/extension/duration"] = "PT90M";
+  }
+  else if ( component == "v" )
+  {
     extensions["http://id.tincanapi.com/extension/severity"] = "online";
-    break;
-
-  default:
+    extensions["http://id.tincanapi.com/extension/duration"] = "PT90M";
+  }
+  else if ( component == "vo" )
+  {
+    extensions["http://id.tincanapi.com/extension/severity"] = "online";
+    extensions["http://id.tincanapi.com/extension/duration"] = "PT45M";
+  }
+  else if ( component == "voo" )
+  {
+    extensions["http://id.tincanapi.com/extension/severity"] = "online";
+    extensions["http://id.tincanapi.com/extension/duration"] = "PT60M";
+  }
+  else
+  {
     verbname = "skipped";
     extensions["http://id.tincanapi.com/extension/severity"] = "skipped";
+    extensions["http://id.tincanapi.com/extension/duration"] = "PT0M";
     verb_xapi_id = "http://id.tincanapi.com/verb/skipped";
-    break;
   }; 
   
   verb = {
@@ -159,7 +175,6 @@ XAPI::AttendanceEntry::ToXapiStatement()
     }
   };
   
-
   // define object result relates to
   object = {
     { "objectType", "Activity"},

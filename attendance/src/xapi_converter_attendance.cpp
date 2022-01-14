@@ -141,13 +141,13 @@ XAPI::Attendance::ParseAttendance()
   }
 
   string line;
-  getline(attendanceFile,line); // Coursename
-  getline(attendanceFile,line); // Title
-  getline(attendanceFile,line); // subtitle
-
+  // read lines until we get proper marker for headers
+  do
+  {
+    getline(attendanceFile,line);
+  } while ( line.rfind("Nimi",0) != 0 );
+  
   // get header information
-
-  getline(attendanceFile,line); // headers
   vector<string> headers = ParseCSVLine(line);
   
   
