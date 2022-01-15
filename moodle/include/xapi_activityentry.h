@@ -30,6 +30,8 @@ extern std::map<std::string, std::string> TaskNameToTaskID;
 extern std::map<std::string, std::string> UserNameToUserID;
 extern std::map<std::string, std::string> UserIDToUserName;
 extern std::map<std::string, std::string> UserIDToEmail;
+extern std::map<std::string, std::string> GroupNameToGroupID;
+extern std::map<std::string, std::string> GroupIDToGroupName;
 extern XAPI::Anonymizer  anonymizer;
 ////////////////////////////////////////////////////////////////////////////////
 namespace XAPI

@@ -681,6 +681,16 @@ XAPI::ActivityEntry::ToXapiStatement()
       extensions["http://id.tincanapi.com/extension/ending-point"] = true;
     
   }
+  else if ( regex_search(description, match,
+			 regex("[Tt]he user with id '([[:digit:]]+)' (removed|added) the user with id '([[:digit:]]+)' (to|from) the group with id '([[:digit:]]+)'\\.")))
+  {
+    
+    userid=anonymizer(match[3]);
+    verbname = ( match[2] == "added" ) ? "joined" : "left";
+    activityType = "group";
+    activity_id = match[5];
+
+  }
   else if ( regex_search(description, match, regex("User ([[:digit:]]+) (updated|created) the question ([[:digit:]]+)\\.")))
   {
     verbname = match[2];
@@ -853,6 +863,18 @@ XAPI::ActivityEntry::ToXapiStatement()
     object["definition"]["name"] =  {
        {"en-GB", activity_id}
     };
+  }
+  else if (activityType == "group" )
+  {
+
+#pragma omp critical
+    {
+      auto it = GroupIDToGroupName.find(activity_id);
+      if ( it == GroupIDToGroupName.end() ) throw xapi_cached_group_not_found_error(activity_id);
+      object["definition"]["name"] =  {
+	{"en-GB", it->second}
+      };
+    }
   }
   else {
     object["definition"]["name"] =  {
