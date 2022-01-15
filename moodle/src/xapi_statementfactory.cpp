@@ -28,6 +28,8 @@ std::map<std::string, std::string> UserNameToUserID = {};
 std::map<std::string, std::string> UserIDToUserName = {};
 std::map<std::string, std::string> UserIDToEmail = {};
 std::map<std::string, std::vector<std::string>> UserIDToRoles = {};
+std::map<std::string, std::string> GroupNameToGroupID = {};
+std::map<std::string, std::string> GroupIDToGroupName = {};
 
 std::string XAPI::StatementFactory::course_id = std::string();
 std::string XAPI::StatementFactory::course_name = std::string();
@@ -101,7 +103,8 @@ std::map<std::string, std::string> activityTypes = {
   { "questionnaire", "/mod/questionnaire/view.php?id=" },
   { "feedback", "/mod/feedback/view.php?id=" },
   { "chat", "/mod/chat/view.php?id=" },
-  { "role", "/user/profile.php?id="} 
+  { "role", "/user/profile.php?id="},
+  { "group", "/group/group.php?id="}
 };
 // some heuristics to match completion state updates 
 const std::map<std::string, std::string> contextModuleLocaleToActivityType = {
@@ -145,7 +148,8 @@ const std::map<std::string, std::string> moodleXapiActivity = {
   /* { "file", "http://activitystrea.ms/schema/1.0/file" }, this does not have purpose atm */
   { "feedback", "http://id.tincanapi.com/activitytype/survey" },
   { "chat", "http://id.tincanapi.com/activitytype/chat-channel" },
-  { "role", "http://id.tincanapi.com/activitytype/security-role" }
+  { "role", "http://id.tincanapi.com/activitytype/security-role" },
+  { "group", "http://activitystrea.ms/schema/1.0/group" }
   
 };
 ////////////////////////////////////////////////////////////////////////////////
@@ -189,6 +193,15 @@ XAPI::StatementFactory::CacheUser( const std::string & name,
       UserIDToEmail[userid] = anonymizer(email);
       UserIDToRoles[userid] = roles;
     }
+}
+////////////////////////////////////////////////////////////////////////////////
+void XAPI::StatementFactory::CacheGroup( const std::string & id, const std::string & name )
+{
+#pragma omp critical
+  {
+    GroupNameToGroupID[name]= id;
+    GroupIDToGroupName[id] = name;
+  }
 }
 ////////////////////////////////////////////////////////////////////////////////
 std::string
