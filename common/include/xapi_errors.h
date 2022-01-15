@@ -52,6 +52,10 @@ class xapi_cached_task_not_found_error : public xapi_parsing_error {
 public:
   xapi_cached_task_not_found_error(const std::string & tmp ) : xapi_parsing_error( "Id for task name '" + tmp + "' not found in previous logs."){}
 };
+class xapi_cached_group_not_found_error : public xapi_parsing_error {
+public:
+  xapi_cached_group_not_found_error(const std::string & tmp ) : xapi_parsing_error( "Group with id '" + tmp + "' not found in cached group records."){}
+};
 class xapi_no_result_error : public xapi_parsing_error {
 public:
   xapi_no_result_error() : xapi_parsing_error( "grade log entry did not contain a result."){}
