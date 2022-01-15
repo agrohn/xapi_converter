@@ -54,8 +54,9 @@ XAPI::MoodleParser::MoodleParser() : XAPI::Application(DESCRIPTION)
   // options 
   desc.add_options()
   ("log", po::value<string>(), "<YOUR-LOG-DATA.json> Actual course log data in JSON format")
-  ("grades", po::value<string>(), "<YOUR-GRADE-DATA.json>  Grade history data obtained from moodle")
-  ("users", po::value<string>(), "<YOUR-USERS-DATA.json>  User (participant) data obtained from moodle")
+  ("grades", po::value<string>(), "<YOUR-GRADE-DATA.json> Grade history data obtained from moodle")
+  ("users", po::value<string>(), "<YOUR-USERS-DATA.json> User (participant) data obtained from moodle")
+  ("groups", po::value<string>(), "<YOUR-GROUPS-DATA.json> Group data obtained from moodle")
   ("courseurl", po::value<string>(), "<course_url> Unique course moodle web address, ends in ?id=xxxx")
   ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
   ("authorize-assignments", "if defined, assignment authorization events will be created." )
@@ -95,11 +96,21 @@ XAPI::MoodleParser::ParseCustomArguments()
   {
     userData = vm["users"].as<string>();
   }
-  
+
+  if ( vm.count("groups"))
+  {
+    groupData = vm["groups"].as<string>();
+  }
   // users should always be set for conversion
   if ( vm.count("users") == 0 && vm.count("load") == 0)
   {
     cerr << "Error: users file is not set!\nPlease see usage with --help.\n";
+    return false;
+  }
+
+  if ( vm.count("groups") == 0 && vm.count("load") == 0)
+  {
+    cerr << "Error: groups file is not set!\nPlease see usage with --help.\n";
     return false;
   }
   
@@ -398,6 +409,33 @@ XAPI::MoodleParser::ParseUsers()
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
+XAPI::MoodleParser::ParseGroups()
+{
+  json groups;
+  ifstream groupsFile(groupData.c_str());
+  if ( !groupsFile.is_open())
+  {
+    stringstream ss;
+    ss << "Cannot open file '" << groupData << "'\n";
+    throw xapi_parsing_error( ss.str());
+  }
+  groupsFile >> groups;
+  Progress progress(0,groups.size());
+  cerr << "\n";
+
+  for(auto it = groups.begin(); it != groups.end(); ++it)
+  {
+    UpdateThrobber("Parsing groups ["+std::string(progress++)+"%]...");
+
+    json group = *it;
+    string name = group["name"];
+    string id = group["id"];
+    XAPI::StatementFactory::CacheGroup( id, name);
+  }
+  groupsFile.close();
+}
+////////////////////////////////////////////////////////////////////////////////
+void
 XAPI::MoodleParser::CreateAssignments()
 {
   for( auto & it : TaskNameToTaskID )
@@ -422,6 +460,11 @@ bool
 XAPI::MoodleParser::HasUserData() const
 {
   return !userData.empty();
+}
+bool
+XAPI::MoodleParser::HasGroupData() const
+{
+  return !groupData.empty();
 }
 ////////////////////////////////////////////////////////////////////////////////
 bool
@@ -474,6 +517,7 @@ int main( int argc, char **argv)
     
     app.UpdateThrobber();
     if ( app.HasUserData())   app.ParseUsers();
+    if ( app.HasGroupData())   app.ParseGroups();
     if ( app.HasLogData())    app.ParseJSONEventLog();
     if ( app.HasGradeData())  app.ParseGradeLog();
     if ( app.ShouldMakeAssignments()) app.CreateAssignments();

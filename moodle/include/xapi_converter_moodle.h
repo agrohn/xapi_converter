@@ -50,6 +50,7 @@ namespace XAPI
     std::string data;
     std::string gradeData;
     std::string userData;
+    std::string groupData;
     Context context;
     bool makeAssignments{false}; ///< should assignment authorized events be created.
     MoodleParser();
@@ -60,11 +61,13 @@ namespace XAPI
     void ParseJSONEventLog();
     void ParseGradeLog();
     void ParseUsers();
-
+    void ParseGroups();
+    
     void CreateAssignments();
     bool HasGradeData() const;
     bool HasLogData() const;
     bool HasUserData() const;
+    bool HasGroupData() const;
     bool ShouldMakeAssignments() const;
 
   };
