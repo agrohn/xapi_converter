@@ -145,8 +145,13 @@ XAPI::Attendance::ParseAttendance()
   do
   {
     getline(attendanceFile,line);
-  } while ( line.rfind("Nimi",0) != 0 );
-  
+  } while ( line.rfind("Nimi",0) != 0 &&
+	    attendanceFile.eof() == false);
+
+  if ( attendanceFile.eof() )
+  {
+    throw xapi_parsing_error("Attendance file did not contain expected data");
+  }
   // get header information
   vector<string> headers = ParseCSVLine(line);
   
