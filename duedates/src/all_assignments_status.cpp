@@ -45,8 +45,14 @@ struct AssignmentRecord
   std::map<string, StudentAssignmentRecord> students;
 };
 
+struct CourseAssignmentRecord
+{
+  string courseId;
+  string courseName;
+  map<string,AssignmentRecord> assignments;
+};
 
-map<string, map<string,AssignmentRecord>> mapAssignmentStatus;
+std::map<string, CourseAssignmentRecord> mapAssignmentStatus;
 
 int main( int argc, char **argv )
 {
@@ -81,7 +87,10 @@ int main( int argc, char **argv )
       {
 	string duedate    = a["duedate"].is_null() ? "" : a["duedate"];
 	string assignment = a["name"];
-	mapAssignmentStatus[course][assignment] = { duedate, {} } ;
+
+	mapAssignmentStatus[courseId].courseName = course;
+	mapAssignmentStatus[courseId].courseId = courseId;
+	mapAssignmentStatus[courseId].assignments[assignment] = { duedate, {} } ;
       }
     }
     catch ( std::exception & ex )
@@ -103,7 +112,7 @@ int main( int argc, char **argv )
       
       string course = c["courseName" ];
       string courseId = c["courseId"];
-      for( auto & assignmentIt : mapAssignmentStatus[course] )
+      for( auto & assignmentIt : mapAssignmentStatus[courseId].assignments )
       {
 	string assignment = assignmentIt.first;	
 	for ( auto & s : c["data"] )
@@ -112,8 +121,8 @@ int main( int argc, char **argv )
 	  string student = s["_id"]["Opiskelija"];
 	  string email = s["_id"]["Email"];
 	
-	  mapAssignmentStatus[course][assignment].students[email].name = student;
-	  mapAssignmentStatus[course][assignment].students[email].email = email;
+	  mapAssignmentStatus[courseId].assignments[assignment].students[email].name = student;
+	  mapAssignmentStatus[courseId].assignments[assignment].students[email].email = email;
 	}
       }
     }
@@ -142,7 +151,7 @@ int main( int argc, char **argv )
 	string email = s["_id"]["email"];
 	string assignment = s["_id"]["task"];
 	string submissionsDate = s["_id"]["date"];
-	mapAssignmentStatus[course][assignment].students[email].submissions.push_back( submissionsDate);
+	mapAssignmentStatus[courseId].assignments[assignment].students[email].submissions.push_back( submissionsDate);
       }
     }
     catch ( std::exception & ex )
@@ -171,7 +180,7 @@ int main( int argc, char **argv )
 	string gradeDate = s["_id"]["Timestamp"];
 	float gradeScore = s["_id"]["Pisteet"];
 	
-	mapAssignmentStatus[course][assignment].students[email].grades.push_back( { gradeDate, gradeScore } );
+	mapAssignmentStatus[courseId].assignments[assignment].students[email].grades.push_back( { gradeDate, gradeScore } );
       }
       
     }
@@ -187,15 +196,16 @@ int main( int argc, char **argv )
   json result = json::array();
   for( auto & cit : mapAssignmentStatus )
   {
-
-    string course = cit.first;
-
+    string courseId = cit.first;
+    string course = cit.second.courseName;
+    
     json coursePart = {
       { "courseName", course },
+      { "courseId", courseId },
       { "assignments", json::array() }
     };
     
-    for( auto & ait : cit.second )
+    for( auto & ait : cit.second.assignments )
     {
       string assignment = ait.first;
       string duedate = ait.second.duedate;
