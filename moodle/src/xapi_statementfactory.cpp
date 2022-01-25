@@ -38,6 +38,7 @@ std::string XAPI::StatementFactory::course_end_date = std::string();
 ////////////////////////////////////////////////////////////////////////////////
 extern XAPI::Anonymizer  anonymizer; 
 ////////////////////////////////////////////////////////////////////////////////
+// Do not add two different verbs with same verb id.
 const std::map<std::string, std::string> supportedVerbs = {
   /*{ "added", ""},*/
   { "assigned","http://activitystrea.ms/schema/1.0/assign"}, 
@@ -46,7 +47,6 @@ const std::map<std::string, std::string> supportedVerbs = {
   { "created","http://activitystrea.ms/schema/1.0/create"},
   { "deleted","http://activitystrea.ms/schema/1.0/delete"},
   { "enrolled","http://activitystrea.ms/schema/1.0/join"},
-  { "joined","http://activitystrea.ms/schema/1.0/join"},
   { "left", "http://activitystrea.ms/schema/1.0/leave" },
   { "commented", "http://adlnet.gov/expapi/verbs/commented" },
   /*{ "ended", ""}, */

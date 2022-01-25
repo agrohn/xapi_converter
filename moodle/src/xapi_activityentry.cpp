@@ -686,7 +686,7 @@ XAPI::ActivityEntry::ToXapiStatement()
   {
     
     userid=anonymizer(match[3]);
-    verbname = ( match[2] == "added" ) ? "joined" : "left";
+    verbname = ( match[2] == "added" ) ? "enrolled" : "left";
     activityType = "group";
     activity_id = match[5];
 
