@@ -1,6 +1,6 @@
 /*
-  This file is part of xapi_converter.
-  Copyright (C) 2018-2019 Anssi Gröhn
+  This file is part of xapi_converter.  
+  Copyright (C) 2018-2021 Anssi Gröhn
   
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -15,39 +15,20 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include <nlohmann/json.hpp>
-#include <fstream>
+#pragma once
+#include <xapi_entry.h>
 #include <string>
-#include <stdexcept>
-#include <iostream>
-#include <sstream>
 ////////////////////////////////////////////////////////////////////////////////
-using namespace std;
-using json = nlohmann::json;
-////////////////////////////////////////////////////////////////////////////////
-int main( int argc, char **argv )
+namespace XAPI
 {
-  if ( argc == 1)
-  {
-    stringstream ss;
-    string line;
-    while( getline(cin, line))
-    {
-      ss << line;
-    }
-    json obj;
-    ss >> obj;
-    cout << obj.dump(4) << "\n";
-    return 0;
-  }
-  for ( int i=1;i<argc;i++)
-  {
-    ifstream file(argv[i]);
-    if ( !file.is_open()) throw runtime_error(std::string("Cannot open file ")+std::string(argv[i]));
-    json obj;
-    file >> obj;
-    cout << obj.dump(4) << "\n";
-  }
-  return 0;
+  class AttendanceEntry : public XAPI::Entry
+  {    
+  public:
+    MemoEntry();
+    virtual ~MemoEntry();
+    void ParseTimestamp(const std::string & strtime) override;
+    void Parse( const std::vector<std::string> & vec);
+    std::string ToXapiStatement() override;
+  };
 }
 ////////////////////////////////////////////////////////////////////////////////
