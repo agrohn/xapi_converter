@@ -86,27 +86,24 @@ XAPI::MemoEntry::ToXapiStatement()
   json object;
   json result;
   json extensions;
-  /*if ( UserNameToUserID.find(username) == UserNameToUserID.end())
-  {
-    throw xapi_cached_user_not_found_error(username);
-    }*/
   
-  //string userid = UserNameToUserID[username];
+
   // define user 
   actor = CreateActorJson(userid);
   
   // construct attend verb
   string verbname;
   string verb_xapi_id;
-  // convert component string to lowercase 
-  transform(component.begin(), component.end(), component.begin(), ::tolower);
+
+
   //event = tolower(event);
   if ( context == "meeting" )
   {
     if( component == "x" )
     {
       verbname = "attended";
-      verb_xapi_id = "http://activitystrea.ms/schema/1.0/attend";    
+      verb_xapi_id = "http://activitystrea.ms/schema/1.0/attend";
+      extensions["http://id.tincanapi.com/extension/purpose"] = description;
     }
     else if ( component == "-" )
     {
@@ -123,9 +120,17 @@ XAPI::MemoEntry::ToXapiStatement()
       verb_xapi_id = "http://id.tincanapi.com/verb/skipped";
       
     }
-    /*    extensions[ "http://id.tincanapi.com/extension/tags"] = {
-     
-	  }*/
+
+    if ( tags.size() > 0 )
+    {
+      json tmp;
+      
+      for ( auto & s : tags )
+      {
+	tmp.push_back(s);
+      }
+      extensions[ "http://id.tincanapi.com/extension/tags"] = tmp;
+    }
     
     // define object result relates to
     object = {
@@ -135,10 +140,10 @@ XAPI::MemoEntry::ToXapiStatement()
 	{
 	  { "description",
 	    {
-	      { "en-GB", "Lecture"}
+	      { "en-GB", "Meeting"}
 	    }
 	  },
-	  { "type" , "http://activitystrea.ms/schema/1.0/event"},
+	  { "type" , "http://adlnet.gov/expapi/activities/meeting"},
 	  { "extensions", extensions }
 	}
       }
@@ -150,9 +155,10 @@ XAPI::MemoEntry::ToXapiStatement()
   {
     verbname = "received";
     verb_xapi_id = "http://activitystrea.ms/schema/1.0/receive";
+
     object = {
       { "objectType", "Activity"},
-      { "id", "https://karelia.fi/role" },
+      { "id", "https://karelia.fi/tiko/ict-toimeksiantoprojekti/meeting-role" },
       { "definition",
 	{
 	  { "description",
@@ -178,14 +184,13 @@ XAPI::MemoEntry::ToXapiStatement()
 	{
 	  { "description",
 	    {
-	      { "en-GB", "Lecture"}
+	      { "en-GB", "Blog"}
 	    }
 	  },
-	  { "type" , "http://id.tincanapi.com/activitytype/blog"},
-	  { "extensions", extensions }
+	  { "type" , "http://id.tincanapi.com/activitytype/blog"}
 	}
       }
-  };
+    };
     
   }
   

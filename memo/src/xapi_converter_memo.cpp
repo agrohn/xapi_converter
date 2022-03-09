@@ -50,8 +50,6 @@ extern XAPI::Anonymizer anonymizer;
 #define DEFAULT_BATCH_FILENAME_PREFIX "batch_"
 #define DEFAULT_CONFIG_FILENAME "config.json"
 ////////////////////////////////////////////////////////////////////////////////
-const string TRIGGERWORDS[] = { string("") };
-////////////////////////////////////////////////////////////////////////////////
 struct MemoUserEntry
 {
   std::string user;
@@ -366,9 +364,14 @@ XAPI::Memo::ParseMemo()
       {
 	//cerr << "reading trigger words for user " << currentUser << "\n";
 	// seek trigger words and map to current user-
-	for( auto & keyword : TRIGGERWORDS )
+	string lowercaseLine = line;
+	// convert to lower case so keyword matches work
+	// (except if there are scandic characters)
+	transform(lowercaseLine.begin(), lowercaseLine.end(),
+		  lowercaseLine.begin(), ::tolower);
+	for( auto & keyword : memo.triggerWords )
         {
-	  if ( line.rfind(keyword) != string::npos )
+	  if (lowercaseLine.rfind(keyword) != string::npos )
 	  {
 	    users[currentUser].triggerWords[keyword]++;
 	  }
@@ -415,22 +418,30 @@ XAPI::Memo::ParseMemo()
 	ss << memoDate;
 	meetingIdentifier = ss.str();
       }
-      
+
       try
       {
 	XAPI::MemoEntry entry;
 	entry.ParseTimestamp(memoDate);
 	/* 
-	   "X attended meeting, context group. " 
-	   "X skipped meeting, context group, severity (known|unknown)"
-
+	   "X attended meeting, context course, purpose role, trigger words as tags" 
+	   "X skipped meeting, context course, severity (known|unknown)"
 	*/
 	entry.userid = allEntries[i].user;
 	entry.context = "meeting";
 	entry.component = trim(allEntries[i].attendance);
+	// role is optional
+	if ( allEntries[i].role.size() > 0 )
+	{
+	  entry.description = trim(allEntries[i].role);
+	}
 	entry.event = meetingIdentifier;
 	entry.course_name = courseName;
 	entry.course_id = courseUrl;
+	for( auto & i : allEntries[i].triggerWords )
+	{
+	  entry.tags.push_back(i.first);
+	}
 	
 	string tmp = entry.ToXapiStatement();
         #pragma omp critical
@@ -441,32 +452,7 @@ XAPI::Memo::ParseMemo()
         #pragma omp critical
 	errorMessages[ex.what()]++;
       }
-
-      if ( allEntries[i].role.size() > 0 )
-      {
-	try
-	{
-	  XAPI::MemoEntry entry;
-	  entry.ParseTimestamp(memoDate);
-	  /* 
-	     "X received role Y."
-	  */
-	  entry.userid = allEntries[i].user;
-	  entry.context = "role";
-	  entry.component = trim(allEntries[i].role);
-	  entry.event = meetingIdentifier;
-	  entry.course_name = courseName;
-	  entry.course_id = courseUrl;
-	  string tmp = entry.ToXapiStatement();
-          #pragma omp critical
-	  statements.push_back(tmp);
-	}
-	catch ( std::runtime_error & ex )
-	{
-            #pragma omp critical
-	  errorMessages[ex.what()]++;
-	}
-      }
+      // dev blog entry update generates its own statement
       if ( allEntries[i].devblogentry == "x" )
       {
 
@@ -531,7 +517,7 @@ int main( int argc, char **argv)
       app.memo.fileIdentifier = config["memo"]["identifier"];
       app.memo.detailSectionIdentifier = config["memo"]["detailsection"];
       app.memo.memberHeaders = config["memo"]["headers"].get<vector<string>>();
-
+      app.memo.triggerWords = config["memo"]["triggerWords"].get<vector<string>>();
       cout << "done.\n";
     }
     catch (std::exception & ex )
