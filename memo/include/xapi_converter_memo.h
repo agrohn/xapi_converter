@@ -48,7 +48,9 @@ namespace XAPI
     };
     std::string memoData;
     MemoData memo;
-
+    std::string courseName;
+    std::string courseUrl;
+    
 
     Memo();
     virtual ~Memo();

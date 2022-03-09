@@ -79,7 +79,10 @@ XAPI::Memo::Memo() : XAPI::Application("Command-line tool for sending XAPI state
   ////////////////////////////////////////////////////////////////////////////////
   // For some hints on usage...
   desc.add_options()
-  ("memos", po::value<string>(), "<SESSION MEMO DATA.txt> Memo txt file with appropriate format. Must have identifiers in place.");
+    ("courseurl", po::value<string>(), "<course_url> Unique course moodle web address, ends in ?id=xxxx")
+    ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
+    
+    ("memo", po::value<string>(), "<SESSION MEMO DATA.txt> Memo txt file with appropriate format. Must have identifiers in place.");
 
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -211,20 +214,49 @@ static int DetermineProcessedUser( const std::string & user, const std::vector<M
 bool
 XAPI::Memo::ParseCustomArguments()
 {
-  if ( vm.count("memos") > 0 && vm.count("load") > 0)
+  if ( vm.count("memo") > 0 && vm.count("load") > 0)
   {
-    cerr << "Error: cannot use --memos and --load at the same time!\n";
+    cerr << "Error: cannot use --memo and --load at the same time!\n";
     return false;
   }
-  else if ( vm.count("load") == 0 && vm.count("memos") == 0)
+  else if ( vm.count("load") == 0 && vm.count("memo") == 0)
   {
     cerr << "Error: memo data is required!\n";
     return false;
   }
-  else if ( vm.count("memos") > 0 )
+  else if ( vm.count("memo") > 0 )
   {
-    memoData = vm["memos"].as<string>();
+    memoData = vm["memo"].as<string>();
   }
+
+  if ( vm.count("courseurl") == 0)
+  {
+    // require course url only when log is specified.
+    if ( load == false )
+    {
+      cerr << "Error: courseurl is missing!\nPlease see usage with --help.\n";
+      return false;
+    }
+  }
+  else
+  {
+    courseUrl = vm["courseurl"].as<string>();
+  }
+  
+  // require course name only when log is specified
+  if ( vm.count("coursename") == 0)
+  {
+    if ( load == false )
+    {
+      cerr << "Error: coursename is missing!\nPlease see usage with --help.\n";
+      return false;
+    }
+  }
+  else
+  {
+    courseName = vm["coursename"].as<string>();
+  }
+
   
   return true;
 }
@@ -242,12 +274,17 @@ XAPI::Memo::ParseMemo()
 
   string line;
   getline(memoFile, line);
-  if ( line.rfind("Ohjaustapaamiset ryhm") != 0 || memoFile.eof() )
+  transform( line.begin(), line.end(), line.begin(), ::tolower);
+  smatch groupMatch;
+  if ( regex_search(line, groupMatch, regex("ohjaustapaamiset ryhm.* r([[:alnum:]]+)")) == false || memoFile.eof() )
   {
     stringstream ss;
     ss << "File '" << memoData << "' is not in proper memo file format! ";
     throw xapi_parsing_error(ss.str());
   }
+  // get group identifier
+  string groupId = groupMatch[1];
+  
   std::vector<MemoUserEntry> allEntries;
   while( memoFile.eof() == false)
   {
@@ -368,8 +405,17 @@ XAPI::Memo::ParseMemo()
 	throw runtime_error("invalid date string");
       }
       string memoDate = dateparts[2]+"-"+dateparts[1]+"-"+dateparts[0];
-	
-
+      
+      // event is used to identify meetting
+      string meetingIdentifier;
+      {
+	stringstream ss;
+	ss << "https://www.karelia.fi/tiko/ict-toimeksiantoprojekti/group/";
+	ss << groupId << "/";
+	ss << memoDate;
+	meetingIdentifier = ss.str();
+      }
+      
       try
       {
 	XAPI::MemoEntry entry;
@@ -382,6 +428,10 @@ XAPI::Memo::ParseMemo()
 	entry.userid = allEntries[i].user;
 	entry.context = "meeting";
 	entry.component = trim(allEntries[i].attendance);
+	entry.event = meetingIdentifier;
+	entry.course_name = courseName;
+	entry.course_id = courseUrl;
+	
 	string tmp = entry.ToXapiStatement();
         #pragma omp critical
 	statements.push_back(tmp);
@@ -404,7 +454,9 @@ XAPI::Memo::ParseMemo()
 	  entry.userid = allEntries[i].user;
 	  entry.context = "role";
 	  entry.component = trim(allEntries[i].role);
-	  
+	  entry.event = meetingIdentifier;
+	  entry.course_name = courseName;
+	  entry.course_id = courseUrl;
 	  string tmp = entry.ToXapiStatement();
           #pragma omp critical
 	  statements.push_back(tmp);
@@ -428,7 +480,9 @@ XAPI::Memo::ParseMemo()
 	  entry.userid = allEntries[i].user;
 	  entry.context = "devblog";
 	  entry.component = trim(allEntries[i].devblogentry);
-
+	  entry.event = meetingIdentifier;
+	  entry.course_name = courseName;
+	  entry.course_id = courseUrl;
 	  string tmp = entry.ToXapiStatement();
           #pragma omp critical
 	  statements.push_back(tmp);
