@@ -17,9 +17,9 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include <xapi_converter_memo.h>
+#include <xapi_converter_devops.h>
 #include <xapi_errors.h>
-#include <xapi_attend.h>
+#include <xapi_commit.h>
 #include <xapi_anonymizer.h>
 #include <omp.h>
 #include <string>
@@ -48,16 +48,18 @@ extern XAPI::Anonymizer anonymizer;
 #define DEFAULT_BATCH_FILENAME_PREFIX "batch_"
 #define DEFAULT_CONFIG_FILENAME "config.json"
 ////////////////////////////////////////////////////////////////////////////////
-XAPI::Memo::Memo() : XAPI::Application("Command-line tool for sending XAPI statements to learning locker from memo logs\nReleased under GPLv3 - use at your own risk. \n\nPrerequisities:\n\tLearning locker client credentials must be in json format in data/config.json.\n\tSimple object { \"login\": { \"key\": \"\", \"secret\":\"\"}, \"lms\" : { \"baseURL\" : \"\" }\n\nUsage")
+XAPI::AzureDevOps::AzureDevOps() : XAPI::Application("Command-line tool for sending XAPI statements to learning locker from Azure devops logs\nReleased under GPLv3 - use at your own risk. \n\nPrerequisities:\n\tLearning locker client credentials must be in json format in data/config.json.\n\tSimple object { \"login\": { \"key\": \"\", \"secret\":\"\"}, \"lms\" : { \"baseURL\" : \"\" }\n\nUsage")
 {
   ////////////////////////////////////////////////////////////////////////////////
   // For some hints on usage...
   desc.add_options()
-  ("memos", po::value<string>(), "<USER MEMO DATA.csv> Memo log for each students and class.");
+    ("courseurl", po::value<string>(), "<course_url> Unique course moodle web address, ends in ?id=xxxx")
+    ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
+    ("commits", po::value<string>(), "<commit.json> Commit log for specific project. class.");
 
 }
 ////////////////////////////////////////////////////////////////////////////////
-XAPI::Memo::~Memo()
+XAPI::AzureDevOps::~AzureDevOps()
 {
   
 }
@@ -69,104 +71,72 @@ static inline std::string & trim(std::string & s)
   return s;
 }
 ////////////////////////////////////////////////////////////////////////////////
-static std::vector<string> ParseCSVLine( const std::string & line )
-{
-  stack<bool> quotes;
-
-  
-  stringstream tmp;
-  tmp << line;
-  vector<string> result;
-
-  stringstream partial;
-  string part;
-  
-  while(getline(tmp, part, ','))
-  {
-    partial << part;
-    if ( quotes.empty() && part[0] == '"' )     quotes.push(true);
-    if ( quotes.empty() == false && (*part.rbegin()) == '"' )      quotes.pop();
-    
-    
-    if ( quotes.empty() )
-    {
-      result.push_back(partial.str());
-      partial.str("");
-      partial.clear();
-    }
-    else
-    {
-      // insert delimeter that was discarded previously
-      partial << ",";
-    }
-
-  }
-
-
-  return  result;
-}
-////////////////////////////////////////////////////////////////////////////////
 bool
-XAPI::Memo::ParseCustomArguments()
+XAPI::AzureDevOps::ParseCustomArguments()
 {
-  if ( vm.count("memos") > 0 && vm.count("load") > 0)
+  if ( vm.count("commits") > 0 && vm.count("load") > 0)
   {
-    cerr << "Error: cannot use --memos and --load at the same time!\n";
+    cerr << "Error: cannot use --commits and --load at the same time!\n";
     return false;
   }
-  else if ( vm.count("load") == 0 && vm.count("memos") == 0)
+  else if ( vm.count("load") == 0 && vm.count("commits") == 0)
   {
-    cerr << "Error: memo data is required!\n";
+    cerr << "Error: commit data is required!\n";
     return false;
   }
-  else if ( vm.count("memos") > 0 )
+  else if ( vm.count("commits") > 0 )
   {
-    memoData = vm["memos"].as<string>();
+    commitData = vm["commits"].as<string>();
   }
   
+  if ( vm.count("courseurl") == 0)
+  {
+    // require course url only when log is specified.
+    if ( load == false )
+    {
+      cerr << "Error: courseurl is missing!\nPlease see usage with --help.\n";
+      return false;
+    }
+  }
+  else
+  {
+    courseUrl = vm["courseurl"].as<string>();
+  }
   
+  // require course name only when log is specified
+  if ( vm.count("coursename") == 0)
+  {
+    if ( load == false )
+    {
+      cerr << "Error: coursename is missing!\nPlease see usage with --help.\n";
+      return false;
+    }
+  }
+  else
+  {
+    courseName = vm["coursename"].as<string>();
+  }
   
   return true;
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
-XAPI::Memo::ParseMemo()
+XAPI::AzureDevOps::ParseCommits()
 {
-  ifstream memoFile(memoData.c_str());
-  if ( !memoFile.is_open())
+  ifstream commitFile(commitData.c_str());
+  if ( !commitFile.is_open())
   {
     stringstream ss;
-    ss << "Cannot open file '" << memoData << "'\n";
+    ss << "Cannot open file '" << commitData << "'\n";
     throw xapi_parsing_error( ss.str());
   }
 
-  string line;
-  // read lines until we get proper marker for headers
-  do
-  {
-    getline(memoFile,line);
-  } while ( line.rfind("Nimi",0) != 0 &&
-	    memoFile.eof() == false);
-
-  if ( memoFile.eof() )
-  {
-    throw xapi_parsing_error("Memo file did not contain expected data");
-  }
-  // get header information
-  vector<string> headers = ParseCSVLine(line);
-  
-  
-  vector<string> lines;
-  while ( memoFile.good() )
-  {
-    getline(memoFile,line);
-    lines.push_back(line);
-  }
-  Progress progress(0,lines.size());
-  memoFile.close();
-
+  json data;
+  commitFile >> data;
+  std::vector<json> entries = data["value"].get<std::vector<json>>();
+  Progress progress(0,entries.size());
 #pragma omp parallel for
-  for(size_t i=0; i < lines.size(); ++i)
+  for(size_t i=0; i < entries.size(); ++i)
   {
     if ( omp_get_thread_num() == 0 )
     {
@@ -174,74 +144,42 @@ XAPI::Memo::ParseMemo()
       ss << "Processing memo data [" << std::string(progress) << "%]...";
       UpdateThrobber(ss.str()); 
     }
-
-
-    std::vector<string> memoRecord = ParseCSVLine(lines[i]);
-    for ( size_t lecture=2; lecture<memoRecord.size(); lecture++)
+    
+    try
     {
-
-
-      string studentId = trim(memoRecord[0]);
-      // trim first and last double quote, if any
-      if ( studentId[0] == '"' ) studentId = studentId.substr(1);
-      if ( *studentId.rbegin() == '"' ) studentId = studentId.substr(0,studentId.size()-1);
-      
-      string studentEmail = trim(memoRecord[1]);
-      string lectureId = trim(headers[lecture]);
-      string memoType = trim(memoRecord[lecture]);
-      
-      string properLectureDate= lectureId.substr(2);
-      // conjure up a date
-      std::vector<string> dateparts;
-      
-      boost::split( dateparts, properLectureDate, boost::is_any_of("."));
-      if ( dateparts.size() != 3 )
-      {
-	throw runtime_error("invalid date string");
-      }
-      string memoDate = dateparts[2]+"-"+dateparts[1]+"-"+dateparts[0];
-	
-      std::vector<string> fields;
-      fields.push_back(studentId);
-      fields.push_back(studentEmail);
-      fields.push_back(memoDate);
-
-      fields.push_back(memoType);
-      fields.push_back(lectureId);
-      try
-      {
-	XAPI::MemoEntry entry;
-	entry.Parse(fields);
-	  
-	string tmp = entry.ToXapiStatement();
-        #pragma omp critical
-	statements.push_back(tmp);
-      }
-      catch ( std::runtime_error & ex )
-      {
-        #pragma omp critical
-	errorMessages[ex.what()]++;
-      }
+      XAPI::CommitEntry entry;
+      entry.Parse(entries[i]);
+      entry.course_name = courseName;
+      entry.course_id = courseUrl;
+      string tmp = entry.ToXapiStatement();
       #pragma omp critical
-      progress++;
+      statements.push_back(tmp);
     }
+    catch ( std::runtime_error & ex )
+    {
+      #pragma omp critical
+      errorMessages[ex.what()]++;
+    }
+    #pragma omp critical
+    progress++;
   }
+
   stringstream ss;
   ss << "Processing memo data [" << std::string(progress) << "%]...";
   UpdateThrobber(ss.str()); 
 }
 ////////////////////////////////////////////////////////////////////////////////
 bool
-XAPI::Memo::HasMemoData() const
+XAPI::AzureDevOps::HasCommitData() const
 {
-  return !memoData.empty();
+  return !commitData.empty();
 }
 ////////////////////////////////////////////////////////////////////////////////
 int main( int argc, char **argv)
 {
     using namespace std;
 
-    XAPI::Memo app;
+    XAPI::AzureDevOps app;
     if ( app.ParseArguments(argc, argv) == false )
     {
       return 1;
@@ -268,7 +206,7 @@ int main( int argc, char **argv)
     
     app.UpdateThrobber();
 
-    if ( app.HasMemoData()) app.ParseMemo();
+    if ( app.HasCommitData()) app.ParseCommits();
     if ( app.ShouldLoad())
     {
       app.LoadBatches();

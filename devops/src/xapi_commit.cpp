@@ -15,7 +15,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include <xapi_attend.h>
+#include <xapi_commit.h>
 #include <algorithm>
 #include <xapi_errors.h>
 #include <xapi_anonymizer.h>
@@ -32,82 +32,81 @@ extern std::map<std::string, std::string> UserNameToUserID;
 extern std::map<std::string, std::string> UserIDToUserName;
 extern std::map<std::string, std::string> UserIDToEmail;
 ////////////////////////////////////////////////////////////////////////////////
-XAPI::MemoEntry::MemoEntry()
+XAPI::CommitEntry::CommitEntry()
 {
 
 }
 ////////////////////////////////////////////////////////////////////////////////
-XAPI::MemoEntry::~MemoEntry()
+XAPI::CommitEntry::~CommitEntry()
 {
 
 }
-////////////////////////////////////////////////////////////////////////////////
 void
-XAPI::MemoEntry::ParseTimestamp(const string & strtime) 
+XAPI::CommitEntry::ParseTimestamp(const std::string & strtime)
 {
-  std::vector<string> tokens;
-  boost::split( tokens, strtime, boost::is_any_of("-"));
-  if ( tokens.size() != 3 )
-    throw runtime_error("invalid date format : '"+strtime+string("'"));
-
+  //2021-03-25T09:21:20Z
+  // 
   {
     stringstream ss;
-    ss << tokens.at(2);
-    if ( !(ss >> when.tm_mday) ) throw runtime_error("Conversion error, day");
-  }
-  {
-    stringstream ss;
-    ss << tokens.at(1);
-      
-    if ( !(ss >> when.tm_mon)  ) throw runtime_error("Conversion error, mon");
-    // sanity check for month value
-    if ( when.tm_mon < 1 || when.tm_mon > 12 )
-    {
-      stringstream smsg;
-      smsg << "Conversion error in memo, month value out of range 1-12.";
-      smsg << "Got: '" << tokens.at(3) << "', value is : " << when.tm_mon;
-      throw runtime_error(smsg.str());
-    }
-  }
-  {
-    stringstream ss;
-    ss << tokens.at(0);
+    ss << strtime.substr(0,4);
     if ( !(ss >> when.tm_year)  ) throw runtime_error("Conversion error, year");
   }
+  // 
+  {
+    stringstream ss;
+    ss << strtime.substr(5,2);
+    if ( !(ss >> when.tm_mon)  ) throw runtime_error("Conversion error, month");
+  }
+  // 
+  {
+    stringstream ss;
+    ss << strtime.substr(8,2);
+    if ( !(ss >> when.tm_mday)  ) throw runtime_error("Conversion error, day");
+  }
+
+  {
+    stringstream ss;
+    ss << strtime.substr(11,2);
+    if ( !(ss >> when.tm_hour)  ) throw runtime_error("Conversion error, hour");
+  }
+  
+  {
+    stringstream ss;
+    ss << strtime.substr(14,2);
+    if ( !(ss >> when.tm_min)  ) throw runtime_error("Conversion error, minute");
+  }
+  {
+    stringstream ss;
+    ss << strtime.substr(17,2);
+    if ( !(ss >> when.tm_sec)  ) throw runtime_error("Conversion error, second");
+  }
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
-XAPI::MemoEntry::Parse( const std::vector<std::string> & vec ) 
+XAPI::CommitEntry::Parse( const nlohmann::json & devopsCommitItem) 
 {
+  std::string date= devopsCommitItem["committer"]["date"];
+  ParseTimestamp(date);
   
-  // break line into comma-separated parts.
-  if ( vec.at(2) != "NULL" && !vec.at(2).empty() )
-    ParseTimestamp(vec.at(2));
-  else
-    throw runtime_error(string("Invalid timestamp ")+vec.at(2));
-  
-  userid = vec.at(1); // gradee student email
-  // convert to lower-case 
-  for ( auto & c : userid ) c = tolower(c);
+  username = devopsCommitItem["committer"]["name"];
+  userid = devopsCommitItem["committer"]["email"];
+  event = devopsCommitItem["remoteUrl"];
 
-
-  #pragma omp critical
+#pragma omp critical
   {
     UserIDToEmail[userid] = anonymizer(userid);
   }
   #pragma omp critical
   {
-    UserIDToUserName[userid] = anonymizer(vec.at(0)); 
+    UserIDToUserName[userid] = anonymizer(username); 
   }
-  
-  event = vec.at(4); // lecture/class that was attended
-  component = vec.at(3); // memo type
+  //component = vec.at(3); // memo type
   //course_name = vec.at(5);
   //course_id = vec.at(3);
 }
 ////////////////////////////////////////////////////////////////////////////////
 std::string
-XAPI::MemoEntry::ToXapiStatement()
+XAPI::CommitEntry::ToXapiStatement()
 {
   json statement;
   json actor;
@@ -127,44 +126,17 @@ XAPI::MemoEntry::ToXapiStatement()
   // construct attend verb
   string verbname;
   string verb_xapi_id;
-  string lecture_id = "http://online-lecture/id="+event;
+
   //event = tolower(event);
 
-  verbname = "attended";
-  verb_xapi_id = "http://activitystrea.ms/schema/1.0/attend";
+  verbname = "created";
+  verb_xapi_id = "http://activitystrea.ms/schema/1.0/create";
 
   // convert component string to lowercase 
   transform(component.begin(), component.end(), component.begin(), ::tolower);
 
   // duration needs to be encoded using ISO8601
   // https://en.wikipedia.org/wiki/ISO_8601
-  if( component == "x" )
-  {
-    extensions["http://id.tincanapi.com/extension/severity"] = "live";
-    extensions["http://id.tincanapi.com/extension/duration"] = "PT90M";
-  }
-  else if ( component == "v" )
-  {
-    extensions["http://id.tincanapi.com/extension/severity"] = "online";
-    extensions["http://id.tincanapi.com/extension/duration"] = "PT90M";
-  }
-  else if ( component == "vo" )
-  {
-    extensions["http://id.tincanapi.com/extension/severity"] = "online";
-    extensions["http://id.tincanapi.com/extension/duration"] = "PT45M";
-  }
-  else if ( component == "voo" )
-  {
-    extensions["http://id.tincanapi.com/extension/severity"] = "online";
-    extensions["http://id.tincanapi.com/extension/duration"] = "PT60M";
-  }
-  else
-  {
-    verbname = "skipped";
-    extensions["http://id.tincanapi.com/extension/severity"] = "skipped";
-    extensions["http://id.tincanapi.com/extension/duration"] = "PT0M";
-    verb_xapi_id = "http://id.tincanapi.com/verb/skipped";
-  }; 
   
   verb = {
     {"id", verb_xapi_id },
@@ -183,16 +155,15 @@ XAPI::MemoEntry::ToXapiStatement()
       {
        { "description",
          {
-          { "en-GB", "Lecture"}
+          { "en-GB", "Commit"}
          }
        },
-       { "type" , "http://activitystrea.ms/schema/1.0/event"},
-       { "extensions", extensions }
+       { "type" , "http://id.tincanapi.com/activitytype/code-commit"}
       }
     }
   };
     
-   json activityContext;
+  json activityContext;
   json grouping = {
     { "grouping", {
 	{

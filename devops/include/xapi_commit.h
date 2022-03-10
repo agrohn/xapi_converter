@@ -18,16 +18,17 @@
 #pragma once
 #include <xapi_entry.h>
 #include <string>
+#include <nlohmann/json.hpp>
 ////////////////////////////////////////////////////////////////////////////////
 namespace XAPI
 {
-  class AttendanceEntry : public XAPI::Entry
+  class CommitEntry : public XAPI::Entry
   {    
   public:
-    MemoEntry();
-    virtual ~MemoEntry();
-    void ParseTimestamp(const std::string & strtime) override;
-    void Parse( const std::vector<std::string> & vec);
+    CommitEntry();
+    virtual ~CommitEntry();
+    void ParseTimestamp( const std::string & strtime) override;
+    void Parse( const nlohmann::json & devopsCommitItem);
     std::string ToXapiStatement() override;
   };
 }

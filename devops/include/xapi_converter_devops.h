@@ -37,17 +37,20 @@
 namespace XAPI
 {
 
-  class Memo : public XAPI::Application
+  class AzureDevOps : public XAPI::Application
   {
 
   public:
+    std::string commitData;
 
-    std::string memoData;
-    Memo();
-    virtual ~Memo();
+    std::string courseName;
+    std::string courseUrl;
+
+    AzureDevOps();
+    virtual ~AzureDevOps();
     bool ParseCustomArguments() override;
-    void ParseMemo();
-    bool HasMemoData() const;
+    void ParseCommits();
+    bool HasCommitData() const;
 
   };
 }
