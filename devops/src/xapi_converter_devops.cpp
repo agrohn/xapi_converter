@@ -20,6 +20,7 @@
 #include <xapi_converter_devops.h>
 #include <xapi_errors.h>
 #include <xapi_commit.h>
+#include <xapi_wikiupdate.h>
 #include <xapi_anonymizer.h>
 #include <omp.h>
 #include <string>
@@ -55,7 +56,8 @@ XAPI::AzureDevOps::AzureDevOps() : XAPI::Application("Command-line tool for send
   desc.add_options()
     ("courseurl", po::value<string>(), "<course_url> Unique course moodle web address, ends in ?id=xxxx")
     ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
-    ("commits", po::value<string>(), "<commit.json> Commit log for specific project. class.");
+    ("commits", po::value<string>(), "<commit.json> Commit log for specific project.")
+    ("wikiupdates", po::value<string>(), "<wikiupdates.json> Commit log for project wikis.");
 
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -88,6 +90,25 @@ XAPI::AzureDevOps::ParseCustomArguments()
   {
     commitData = vm["commits"].as<string>();
   }
+
+  // wiki updates
+  if ( vm.count("wikiupdates") > 0 && vm.count("load") > 0)
+  {
+    cerr << "Error: cannot use --wikiupdates and --load at the same time!\n";
+    return false;
+  }
+  else if ( vm.count("load") == 0 && vm.count("wikiupdates") == 0)
+  {
+    cerr << "Error: wiki update data is required!\n";
+    return false;
+  }
+  else if ( vm.count("wikiupdates") > 0 )
+  {
+    wikiData = vm["wikiupdates"].as<string>();
+  }
+
+
+
   
   if ( vm.count("courseurl") == 0)
   {
@@ -121,9 +142,9 @@ XAPI::AzureDevOps::ParseCustomArguments()
 }
 ////////////////////////////////////////////////////////////////////////////////
 void
-XAPI::AzureDevOps::ParseCommits()
+XAPI::AzureDevOps::ParseCommits( bool wiki)
 {
-  ifstream commitFile(commitData.c_str());
+  ifstream commitFile(wiki ? wikiData.c_str() : commitData.c_str() );
   if ( !commitFile.is_open())
   {
     stringstream ss;
@@ -147,13 +168,27 @@ XAPI::AzureDevOps::ParseCommits()
     
     try
     {
-      XAPI::CommitEntry entry;
-      entry.Parse(entries[i]);
-      entry.course_name = courseName;
-      entry.course_id = courseUrl;
-      string tmp = entry.ToXapiStatement();
-      #pragma omp critical
-      statements.push_back(tmp);
+      if ( wiki )
+      {
+	XAPI::WikiUpdateEntry entry;
+	entry.Parse(entries[i]);
+	entry.course_name = courseName;
+	entry.course_id = courseUrl;
+	string tmp = entry.ToXapiStatement();
+        #pragma omp critical
+	statements.push_back(tmp);
+
+      }
+      else
+      {
+	XAPI::CommitEntry entry;
+	entry.Parse(entries[i]);
+	entry.course_name = courseName;
+	entry.course_id = courseUrl;
+	string tmp = entry.ToXapiStatement();
+        #pragma omp critical
+	statements.push_back(tmp);
+      }
     }
     catch ( std::runtime_error & ex )
     {
@@ -173,6 +208,12 @@ bool
 XAPI::AzureDevOps::HasCommitData() const
 {
   return !commitData.empty();
+}
+////////////////////////////////////////////////////////////////////////////////
+bool
+XAPI::AzureDevOps::HasWikiData() const
+{
+  return !wikiData.empty();
 }
 ////////////////////////////////////////////////////////////////////////////////
 int main( int argc, char **argv)
@@ -207,6 +248,7 @@ int main( int argc, char **argv)
     app.UpdateThrobber();
 
     if ( app.HasCommitData()) app.ParseCommits();
+    if ( app.HasWikiData())   app.ParseCommits(true);
     if ( app.ShouldLoad())
     {
       app.LoadBatches();

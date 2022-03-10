@@ -42,15 +42,18 @@ namespace XAPI
 
   public:
     std::string commitData;
-
+    std::string wikiData;
+    
     std::string courseName;
     std::string courseUrl;
 
     AzureDevOps();
     virtual ~AzureDevOps();
     bool ParseCustomArguments() override;
-    void ParseCommits();
+    // wiki update  data is stored as git commits, so we can use same parser logic.
+    void ParseCommits( bool wiki = false);
     bool HasCommitData() const;
+    bool HasWikiData() const;
 
   };
 }
