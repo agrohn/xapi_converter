@@ -24,6 +24,41 @@
 using namespace std;
 using json = nlohmann::json;
 ////////////////////////////////////////////////////////////////////////////////
+void handle_array_element( json j, list<string> format)
+{
+  bool hadArrayHandling = false;
+  while( format.empty() == false )
+  {
+    stringstream numss;
+    numss << format.front();
+    int index;
+    if ( format.front() == "[]" )
+    {
+      hadArrayHandling = true;
+      format.pop_front();
+      for ( auto & e : j )
+      {
+	handle_array_element(e,format);
+      }
+      // since actual handling occurs within array elements,
+      // we can break loop here.
+
+      break;
+    }
+    else if ( !(numss >> index))
+    {
+      j = j[format.front()];
+    }
+    else 
+    {
+      j = j[index];
+    }
+    format.pop_front();
+  }
+  if (hadArrayHandling == false )
+    cout << j << "\n";
+}
+////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv) 
 {
   // read json from stdin, and parse field value according to first parameter.
@@ -44,26 +79,14 @@ int main(int argc, char **argv)
   {
     format.push_back(section);
   }
-  
+  // add final value after comma (if it exists)
+  if ( section.empty() == false )
+    format.push_back(section);
+
   json j;
   ss >> j;
   try {
-    while( format.empty() == false )
-    {
-      stringstream numss;
-      numss << format.front();
-      int index;
-      if ( !(numss >> index))
-      {
-	j = j[format.front()];
-      }
-      else
-      {
-	j = j[index];
-      }
-      format.pop_front();
-    }
-    cout << j << "\n";
+    handle_array_element(j,format);
     return 0;
   }
   catch ( std::exception & e )
