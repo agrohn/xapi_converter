@@ -43,6 +43,7 @@ namespace XAPI
   public:
     std::string commitData;
     std::string wikiData;
+    std::string workitemData;
     
     std::string courseName;
     std::string courseUrl;
@@ -52,8 +53,10 @@ namespace XAPI
     bool ParseCustomArguments() override;
     // wiki update  data is stored as git commits, so we can use same parser logic.
     void ParseCommits( bool wiki = false);
+    void ParseWorkitemRevisions();
+
     bool HasCommitData() const;
     bool HasWikiData() const;
-
+    bool HasWorkitemData() const;
   };
 }

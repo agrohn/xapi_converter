@@ -21,6 +21,7 @@
 #include <xapi_errors.h>
 #include <xapi_commit.h>
 #include <xapi_wikiupdate.h>
+#include <xapi_workitemactivity.h>
 #include <xapi_anonymizer.h>
 #include <omp.h>
 #include <string>
@@ -57,8 +58,8 @@ XAPI::AzureDevOps::AzureDevOps() : XAPI::Application("Command-line tool for send
     ("courseurl", po::value<string>(), "<course_url> Unique course moodle web address, ends in ?id=xxxx")
     ("coursename", po::value<string>(), "<course_name> Human-readable name for the course")
     ("commits", po::value<string>(), "<commit.json> Commit log for specific project.")
-    ("wikiupdates", po::value<string>(), "<wikiupdates.json> Commit log for project wikis.");
-
+    ("wikiupdates", po::value<string>(), "<wikiupdates.json> Commit log for project wikis.")
+    ("workitems", po::value<string>(), "<workitemrevisions.json> Revision log for Azure workitems.");
 }
 ////////////////////////////////////////////////////////////////////////////////
 XAPI::AzureDevOps::~AzureDevOps()
@@ -81,11 +82,11 @@ XAPI::AzureDevOps::ParseCustomArguments()
     cerr << "Error: cannot use --commits and --load at the same time!\n";
     return false;
   }
-  else if ( vm.count("load") == 0 && vm.count("commits") == 0)
+  /*else if ( vm.count("load") == 0 && vm.count("commits") == 0)
   {
     cerr << "Error: commit data is required!\n";
     return false;
-  }
+    }*/
   else if ( vm.count("commits") > 0 )
   {
     commitData = vm["commits"].as<string>();
@@ -97,17 +98,31 @@ XAPI::AzureDevOps::ParseCustomArguments()
     cerr << "Error: cannot use --wikiupdates and --load at the same time!\n";
     return false;
   }
-  else if ( vm.count("load") == 0 && vm.count("wikiupdates") == 0)
+  /*  else if ( vm.count("load") == 0 && vm.count("wikiupdates") == 0)
   {
     cerr << "Error: wiki update data is required!\n";
     return false;
-  }
+    }*/
   else if ( vm.count("wikiupdates") > 0 )
   {
     wikiData = vm["wikiupdates"].as<string>();
   }
 
-
+  // workitem revisions
+  if ( vm.count("workitems") > 0 && vm.count("load") > 0)
+  {
+    cerr << "Error: cannot use --workitems and --load at the same time!\n";
+    return false;
+  }
+  /*else if ( vm.count("load") == 0 && vm.count("workitems") == 0)
+  {
+    cerr << "Error: workitems revision data is required!\n";
+    return false;
+    }*/
+  else if ( vm.count("workitems") > 0 )
+  {
+    workitemData = vm["workitems"].as<string>();
+  }
 
   
   if ( vm.count("courseurl") == 0)
@@ -162,7 +177,7 @@ XAPI::AzureDevOps::ParseCommits( bool wiki)
     if ( omp_get_thread_num() == 0 )
     {
       stringstream ss;
-      ss << "Processing memo data [" << std::string(progress) << "%]...";
+      ss << "Processing " << ( wiki ?  "wiki" : "commit" ) << "data [" << std::string(progress) << "%]...";
       UpdateThrobber(ss.str()); 
     }
     
@@ -204,6 +219,56 @@ XAPI::AzureDevOps::ParseCommits( bool wiki)
   UpdateThrobber(ss.str()); 
 }
 ////////////////////////////////////////////////////////////////////////////////
+void
+XAPI::AzureDevOps::ParseWorkitemRevisions()
+{
+  ifstream workitemFile( workitemData.c_str() );
+  if ( !workitemFile.is_open())
+  {
+    stringstream ss;
+    ss << "Cannot open file '" << workitemData << "'\n";
+    throw xapi_parsing_error( ss.str());
+  }
+
+  json data;
+  workitemFile >> data;
+  std::vector<json> entries = data["value"].get<std::vector<json>>();
+  Progress progress(0,entries.size());
+#pragma omp parallel for
+  for(size_t i=0; i < entries.size(); ++i)
+  {
+    if ( omp_get_thread_num() == 0 )
+    {
+      stringstream ss;
+      ss << "Processing workitem data [" << std::string(progress) << "%]...";
+      UpdateThrobber(ss.str()); 
+    }
+    
+    try
+    {
+      XAPI::WorkitemActivityEntry entry;
+      entry.Parse(entries[i]);
+      entry.course_name = courseName;
+      entry.course_id = courseUrl;
+      string tmp = entry.ToXapiStatement();
+#pragma omp critical
+      statements.push_back(tmp);
+    }
+    catch ( std::runtime_error & ex )
+    {
+      #pragma omp critical
+      errorMessages[ex.what()]++;
+    }
+    #pragma omp critical
+    progress++;
+  }
+
+  stringstream ss;
+  ss << "Processing memo data [" << std::string(progress) << "%]...";
+  UpdateThrobber(ss.str()); 
+  
+}
+////////////////////////////////////////////////////////////////////////////////
 bool
 XAPI::AzureDevOps::HasCommitData() const
 {
@@ -214,6 +279,12 @@ bool
 XAPI::AzureDevOps::HasWikiData() const
 {
   return !wikiData.empty();
+}
+////////////////////////////////////////////////////////////////////////////////
+bool
+XAPI::AzureDevOps::HasWorkitemData() const
+{
+  return !workitemData.empty();
 }
 ////////////////////////////////////////////////////////////////////////////////
 int main( int argc, char **argv)
@@ -247,8 +318,9 @@ int main( int argc, char **argv)
     
     app.UpdateThrobber();
 
-    if ( app.HasCommitData()) app.ParseCommits();
-    if ( app.HasWikiData())   app.ParseCommits(true);
+    if ( app.HasCommitData())	app.ParseCommits();
+    if ( app.HasWikiData())	app.ParseCommits(true);
+    if ( app.HasWorkitemData()) app.ParseWorkitemRevisions();
     if ( app.ShouldLoad())
     {
       app.LoadBatches();
