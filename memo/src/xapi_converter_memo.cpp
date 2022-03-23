@@ -274,7 +274,7 @@ XAPI::Memo::ParseMemo()
   getline(memoFile, line);
   transform( line.begin(), line.end(), line.begin(), ::tolower);
   smatch groupMatch;
-  if ( regex_search(line, groupMatch, regex("ohjaustapaamiset ryhm.* r([[:alnum:]]+)")) == false || memoFile.eof() )
+  if ( regex_search(line, groupMatch, regex("ohjaustapaamiset ryhm.* ([[:alnum:]]+)")) == false || memoFile.eof() )
   {
     stringstream ss;
     ss << "File '" << memoData << "' is not in proper memo file format! ";
