@@ -15,5 +15,5 @@ set(HEADERS
   )
 
 add_executable(xapi_devops ${SOURCES})
-
+add_executable(json_merge_projectdata_into_value_elements src/json_merge_projectdata_into_value_elements.cpp)
 target_link_libraries(xapi_devops xapi_common ${LIBS} )
