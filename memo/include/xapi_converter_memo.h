@@ -45,7 +45,8 @@ namespace XAPI
       std::string fileIdentifier;
       std::vector<std::string> memberHeaders;
       std::string detailSectionIdentifier;
-      std::vector<std::string> triggerWords;
+      std::vector<std::string> activityTriggerWords;
+      std::vector<std::string> dedicationTriggerWords;
     };
     std::string memoData;
     MemoData memo;

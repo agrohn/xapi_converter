@@ -25,7 +25,8 @@ namespace XAPI
   {    
   public:
     MemoEntry();
-    std::vector<std::string> tags;
+    std::string dedication;
+    std::string activity;
     virtual ~MemoEntry();
     void ParseTimestamp(const std::string & strtime) override;
     std::string ToXapiStatement() override;
