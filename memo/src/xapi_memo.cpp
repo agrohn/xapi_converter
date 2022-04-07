@@ -86,7 +86,6 @@ XAPI::MemoEntry::ToXapiStatement()
   json object;
   json result;
   json extensions;
-  
 
   // define user 
   actor = CreateActorJson(userid);
@@ -95,105 +94,58 @@ XAPI::MemoEntry::ToXapiStatement()
   string verbname;
   string verb_xapi_id;
 
-
   //event = tolower(event);
-  if ( context == "meeting" )
+  if( component == "x" )
   {
-    if( component == "x" )
-    {
-      verbname = "attended";
-      verb_xapi_id = "http://activitystrea.ms/schema/1.0/attend";
-      extensions["http://id.tincanapi.com/extension/purpose"] = description;
-    }
-    else if ( component == "-" )
-    {
-
-      verbname = "skipped";
-      extensions["http://id.tincanapi.com/extension/severity"] = "known";
-      verb_xapi_id = "http://id.tincanapi.com/verb/skipped";
-
-    }
-    else if ( component == "?" )
-    {
-      verbname = "skipped";
-      extensions["http://id.tincanapi.com/extension/severity"] = "unknown";
-      verb_xapi_id = "http://id.tincanapi.com/verb/skipped";
-      
-    }
-
-    if ( tags.size() > 0 )
-    {
-      json tmp;
-      
-      for ( auto & s : tags )
-      {
-	tmp.push_back(s);
-      }
-      extensions[ "http://id.tincanapi.com/extension/tags"] = tmp;
-    }
+    verbname = "attended";
+    verb_xapi_id = "http://activitystrea.ms/schema/1.0/attend";
     
-    // define object result relates to
-    object = {
-      { "objectType", "Activity"},
-      { "id",  event},
-      { "definition",
-	{
-	  { "description",
-	    {
-	      { "en-GB", "Meeting"}
-	    }
-	  },
-	  { "type" , "http://adlnet.gov/expapi/activities/meeting"},
-	  { "extensions", extensions }
-	}
-      }
-    };
+    extensions["http://id.tincanapi.com/extension/severity"] = "known";
+    extensions["http://id.tincanapi.com/extension/purpose"] = description;
+  }
+  else if ( component == "-" )
+  {
+    
+    verbname = "skipped";
+    verb_xapi_id = "http://id.tincanapi.com/verb/skipped";
 
+    extensions["http://id.tincanapi.com/extension/severity"] = "known";
+    extensions["http://id.tincanapi.com/extension/purpose"] = "";
 
   }
-  else if ( context == "role" )
+  else if ( component == "?" )
   {
-    verbname = "received";
-    verb_xapi_id = "http://activitystrea.ms/schema/1.0/receive";
-
-    object = {
-      { "objectType", "Activity"},
-      { "id", "https://karelia.fi/tiko/ict-toimeksiantoprojekti/meeting-role" },
-      { "definition",
-	{
-	  { "description",
-	    {
-	      { "en-GB", context}
-	    }
-	  },
-	  { "type" , "http://id.tincanapi.com/activitytype/security-role"},
-	  { "extensions", extensions }
-	}
-      }
-    };
-
-  }
-  else if ( context == "devblog" )
-  {
-    verbname = "updated";
-    verb_xapi_id = "http://activitystrea.ms/schema/1.0/update";
-    object = {
-      { "objectType", "Activity"},
-      { "id",  "https://karelia.fi/devblog"},
-      { "definition",
-	{
-	  { "description",
-	    {
-	      { "en-GB", "Blog"}
-	    }
-	  },
-	  { "type" , "http://id.tincanapi.com/activitytype/blog"}
-	}
-      }
-    };
-    
+    verbname = "skipped";
+    verb_xapi_id = "http://id.tincanapi.com/verb/skipped";
+      
+    extensions["http://id.tincanapi.com/extension/severity"] = "unknown";
+    extensions["http://id.tincanapi.com/extension/purpose"] = "";
   }
   
+  // this is custom 
+  extensions[ "http://id.karelia.fi/extension/ict-meeting"] = {
+    { "role", description },
+    { "dedication", dedication },
+    { "activity", activity },
+    { "blog", context }
+  };
+    
+  // define object result relates to
+  object = {
+    { "objectType", "Activity"},
+    { "id",  event},
+    { "definition",
+      {
+	{ "description",
+	  {
+	    { "en-GB", "Meeting"}
+	  }
+	},
+	{ "type" , "http://adlnet.gov/expapi/activities/meeting"},
+	{ "extensions", extensions }
+      }
+    }
+  };
   
   verb = {
     {"id", verb_xapi_id },
@@ -205,31 +157,34 @@ XAPI::MemoEntry::ToXapiStatement()
   };
   
     
-   json activityContext;
+  json activityContext;
+  json contextActivities;
   json grouping = {
-    { "grouping", {
+    {
+      { "objectType", "Activity" },
+      { "id", course_id },
+      { "definition",
 	{
-	  { "objectType", "Activity" },
-	  { "id", course_id },
-	  { "definition",
+	  { "description",
 	    {
-	      { "description",
-		{
-		  { "en-GB", course_name}
-		}
-	      },
-	      { "type", "http://adlnet.gov/expapi/activities/course"}
+	      { "en-GB", course_name}
 	    }
-	  }
+	  },
+	  { "type", "http://adlnet.gov/expapi/activities/course"}
 	}
       }
     }
   };
-  
-  activityContext =  {
-    { "contextActivities", grouping }
+
+
+  contextActivities = {
+    { "grouping", grouping },
   };
-  
+    
+    
+  activityContext =  {
+    { "contextActivities", contextActivities }
+  };
   statement["actor"] = actor;
   statement["verb"] = verb;
   statement["timestamp"] = GetTimestamp();

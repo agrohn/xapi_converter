@@ -59,7 +59,8 @@ struct MemoUserEntry
   std::string devblogentry;
   std::string date;
   std::string weeknum;
-  std::map<std::string,int> triggerWords; // interacted meeting, severity?
+  std::string activity; 
+  std::string dedication;
 };
 ////////////////////////////////////////////////////////////////////////////////
 inline  std::ostream & operator<<(std::ostream & s, MemoUserEntry & m)
@@ -199,8 +200,8 @@ static int DetermineProcessedUser( const std::string & user, const std::vector<M
   {
     string tmpname = entries[i].user;
     transform(tmpname.begin(), tmpname.end(), tmpname.begin(), ::tolower);
-    
-    if ( tmpline.rfind(tmpname) != string::npos )
+    // name should be right in the beginning
+    if ( tmpline.rfind(tmpname) == 0 )
     {
       userindex = i;
       break;
@@ -291,11 +292,12 @@ XAPI::Memo::ParseMemo()
     do
     {
       getline(memoFile,line);
-    } while ( regex_search(line, match, regex("[[:space:]]+Viikko [(]*([[:digit:]]+)[)]* [(]*([[:digit:]]+)[)]*: ([[:digit:]]+\\.[[:digit:]]+\\.[[:digit:]]{4})")) == false &&
+    } while ( regex_search(line, match, regex("[[:space:]]*Viikko [(]*([[:digit:]]+)[)](.*): ([[:digit:]]+\\.[[:digit:]]+\\.[[:digit:]]{4})")) == false &&
 	      memoFile.eof() == false);
     
     if ( memoFile.eof() )
     {
+      cerr << "Reached end-of-file\n";
       break;
     }
     
@@ -353,27 +355,53 @@ XAPI::Memo::ParseMemo()
 	cerr << "section skip\n";
 	sessionActive = false;
       }
-      
-      if ( regex_search(line, match, regex("[[:space:]]+\\*[[:space:]](.+)")))
+      else if ( regex_search(line, match, regex("[[:space:]]*(.+)")))
       {
-	
-	currentUser = DetermineProcessedUser(match[1], users);
-	cerr << "found user line " << line << ", it matches " << currentUser << "\n";
-      }
-      else if (currentUser != -1 )
-      {
-	//cerr << "reading trigger words for user " << currentUser << "\n";
-	// seek trigger words and map to current user-
-	string lowercaseLine = line;
-	// convert to lower case so keyword matches work
-	// (except if there are scandic characters)
-	transform(lowercaseLine.begin(), lowercaseLine.end(),
-		  lowercaseLine.begin(), ::tolower);
-	for( auto & keyword : memo.triggerWords )
-        {
-	  if (lowercaseLine.rfind(keyword) != string::npos )
+
+	int userIdentifier = DetermineProcessedUser(match[1], users);
+	if ( userIdentifier != -1 )
+	{
+	    currentUser = userIdentifier;
+	    cerr << "found user line " << line << ", it matches " << currentUser << "\n";
+	    continue;
+	}
+	// if we have previously identified user, we check its keywords
+	if (currentUser != -1 )
+	{
+	  //cerr << "reading trigger words for user " << currentUser << "\n";
+	  // seek trigger words and map to current user-
+	  string lowercaseLine = line;
+	  // convert to lower case so keyword matches work
+	  // (except if there are scandic characters)
+	  transform(lowercaseLine.begin(), lowercaseLine.end(),
+		    lowercaseLine.begin(), ::tolower);
+	  
+	  cerr << "processing trigger words for line: " << lowercaseLine << ":\n";
+	  for( auto & keyword : memo.activityTriggerWords )
 	  {
-	    users[currentUser].triggerWords[keyword]++;
+	    cerr <<" attempting to find '" << keyword << "'...";
+	    if (lowercaseLine.rfind(keyword) != string::npos )
+	    {
+	      users[currentUser].activity = keyword;
+	      cerr << "set\n";
+	    }
+	    else
+	    {
+	      cerr << "not\n";
+	    }
+	  }
+	  for( auto & keyword : memo.dedicationTriggerWords )
+	  {
+	    cerr <<" attempting to find '" << keyword << "'...";
+	    if (lowercaseLine.rfind(keyword) != string::npos )
+	    {
+	      users[currentUser].dedication = keyword;
+	      cerr << "found\n";
+	    }
+	    else
+	    {
+	      cerr << "not\n";
+	    }
 	  }
 	}
       }
@@ -426,10 +454,15 @@ XAPI::Memo::ParseMemo()
 	/* 
 	   "X attended meeting, context course, purpose role, trigger words as tags" 
 	   "X skipped meeting, context course, severity (known|unknown)"
+	   "X updated blog"
+	   
+	   recycling originally moodle-related fields below,
 	*/
+	
 	entry.userid = allEntries[i].user;
-	entry.context = "meeting";
+	entry.context = trim(allEntries[i].devblogentry);
 	entry.component = trim(allEntries[i].attendance);
+
 	// role is optional
 	if ( allEntries[i].role.size() > 0 )
 	{
@@ -438,10 +471,8 @@ XAPI::Memo::ParseMemo()
 	entry.event = meetingIdentifier;
 	entry.course_name = courseName;
 	entry.course_id = courseUrl;
-	for( auto & i : allEntries[i].triggerWords )
-	{
-	  entry.tags.push_back(i.first);
-	}
+	entry.dedication = allEntries[i].dedication;
+	entry.activity = allEntries[i].activity;
 	
 	string tmp = entry.ToXapiStatement();
         #pragma omp critical
@@ -451,33 +482,6 @@ XAPI::Memo::ParseMemo()
       {
         #pragma omp critical
 	errorMessages[ex.what()]++;
-      }
-      // dev blog entry update generates its own statement
-      if ( allEntries[i].devblogentry == "x" )
-      {
-
-	try
-	{
-	  XAPI::MemoEntry entry;
-	  entry.ParseTimestamp(memoDate);
-	  /* 
-	     "X updated blog".
-	  */
-	  entry.userid = allEntries[i].user;
-	  entry.context = "devblog";
-	  entry.component = trim(allEntries[i].devblogentry);
-	  entry.event = meetingIdentifier;
-	  entry.course_name = courseName;
-	  entry.course_id = courseUrl;
-	  string tmp = entry.ToXapiStatement();
-          #pragma omp critical
-	  statements.push_back(tmp);
-	}
-	catch ( std::runtime_error & ex )
-        {
-          #pragma omp critical
-	  errorMessages[ex.what()]++;
-	}
       }
       
       #pragma omp critical
@@ -517,7 +521,8 @@ int main( int argc, char **argv)
       app.memo.fileIdentifier = config["memo"]["identifier"];
       app.memo.detailSectionIdentifier = config["memo"]["detailsection"];
       app.memo.memberHeaders = config["memo"]["headers"].get<vector<string>>();
-      app.memo.triggerWords = config["memo"]["triggerWords"].get<vector<string>>();
+      app.memo.activityTriggerWords = config["memo"]["activityTriggerWords"].get<vector<string>>();
+      app.memo.dedicationTriggerWords = config["memo"]["dedicationTriggerWords"].get<vector<string>>();
       cout << "done.\n";
     }
     catch (std::exception & ex )
