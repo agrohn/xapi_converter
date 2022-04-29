@@ -15,11 +15,14 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+#include <boost/tokenizer.hpp>
+#include <boost/algorithm/string.hpp>
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <string>
 #include <sstream>
 #include <list>
+#include <algorithm>
 ////////////////////////////////////////////////////////////////////////////////
 using namespace std;
 using json = nlohmann::json;
@@ -47,7 +50,25 @@ void handle_array_element( json j, list<string> format)
     }
     else if ( !(numss >> index))
     {
-      j = j[format.front()];
+
+      vector<string> tokens;
+      boost::split(tokens, format.front(), boost::is_any_of("|"));
+      if ( tokens.size() > 1 )
+      {
+        list<string> splitFormat = format;
+	splitFormat.pop_front();
+	hadArrayHandling = true;
+	for( auto & s : tokens )
+	{
+             splitFormat.push_front(s);
+             handle_array_element( j, splitFormat);
+             splitFormat.pop_front();
+	}
+      }
+      else
+      {
+	j = j[format.front()];
+      }
     }
     else 
     {
