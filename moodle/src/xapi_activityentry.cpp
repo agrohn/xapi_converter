@@ -394,9 +394,11 @@ XAPI::ActivityEntry::ToXapiStatement()
     verbname = match[2];
     if ( verbname == "had" ) verbname = "abandoned";
      
-    activityType = "attempt";
+    activityType = "quiz";
     attemptNumber = match[4]; 
     activity_id = match[6]; // quiz
+    auto it = activityTypes.find("attempt");
+    extensions["http://id.tincanapi.com/extension/attempt-id"] = it->second + attemptNumber;
   }
   /*
     
@@ -448,11 +450,11 @@ XAPI::ActivityEntry::ToXapiStatement()
     #pragma omp critical
     userid = anonymizer(match[1]);
     verbname = "evaluated";
-    activityType = "submission";
+    activityType = "quiz";
     attemptNumber = match[3];
     activity_id = match[4];
     string questionId = match[2];
-    auto it = activityTypes.find("quiz");
+    auto it = activityTypes.find("attempt");
     extensions["http://id.tincanapi.com/extension/attempt-id"] = it->second + attemptNumber;
     it = activityTypes.find("question");
     extensions["http://id.tincanapi.com/extension/target"] = it->second + questionId;
@@ -691,16 +693,16 @@ XAPI::ActivityEntry::ToXapiStatement()
     activity_id = match[5];
 
   }
+  else if ( regex_search(description, match,
+                         regex("[Tt]he user with id '(-?[[:digit:]]+)' ([[:alnum:]]+) the grade with id '([[:digit:]]+)' for the user with id '([[:digit:]]+)' for the grade item with id '([[:digit:]]+)'\\.") ))
+  {
+    throw xapi_activity_ignored_error("updated/deleted:grade");
+  }
   else if ( regex_search(description, match, regex("User ([[:digit:]]+) (updated|created) the question ([[:digit:]]+)\\.")))
   {
     verbname = match[2];
     // we cannot create proper log entry using this kind of statement moodle logs give us.
     throw xapi_activity_ignored_error(verbname+":question (question id without proper course module id)");
-  }
-  else if ( regex_search(description, match,
-                         regex("[Tt]he user with id '(-?[[:digit:]]+)' ([[:alnum:]]+) the grade with id '([[:digit:]]+)' for the user with id '([[:digit:]]+)' for the grade item with id '([[:digit:]]+)'\\.") ))
-  {
-    throw xapi_activity_ignored_error("updated/deleted:grade");
   }
   else if ( regex_search(description, match,
                          regex("[Tt]he user with id '([[:digit:]]+)' ([[:alnum:]]+) the (event|backup|instance of enrolment method) '(.*)' with id '([[:digit:]]+)'") ))
@@ -821,7 +823,7 @@ XAPI::ActivityEntry::ToXapiStatement()
     ss << object_id << "#p=" << postNumber;
     object_id = ss.str();
   }
-  else if ( it->first == "submission"  )
+  else if ( it->first == "submission" )
   {
     stringstream ss;
     ss << object_id << "&userid=" << userWhoIsProcessed;
