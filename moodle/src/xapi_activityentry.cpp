@@ -825,12 +825,11 @@ XAPI::ActivityEntry::ToXapiStatement()
   }
   else if ( it->first == "submission" )
   {
-    stringstream ss;
-    ss << object_id << "&userid=" << userWhoIsProcessed;
-    // target extension holds proper moodle url to open user submission.
-    // assignment url will be kept as such (without userid part)
-    // so we may map submissions to specific assignments in mongodb queries.
-    extensions["http://id.tincanapi.com/extension/target"] = ss.str();
+    json targetUser = CreateActorJson(userWhoIsProcessed);
+    // target extension holds actor who's submission is in question. This comes in handly since
+    // assignment submission ids do not match evaluation submission id, and we wish to find out who
+    // reviewed and graded user's submission to assignment.
+    extensions["http://id.tincanapi.com/extension/target"] = targetUser;
   }
   /* find proper Xapi activity type */ 
   string moodleActivity = it->first;
